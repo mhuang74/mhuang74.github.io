@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Proteiosic Thoughts</title>
+  
+  
+  <link href="/atom.xml" rel="self"/>
+  
+  <link href="https://mhuang74.github.io/"/>
+  <updated>2019-03-01T21:19:10.618Z</updated>
+  <id>https://mhuang74.github.io/</id>
+  
+  <author>
+    <name>Michael S. Huang</name>
+    
+  </author>
+  
+  <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>first-post</title>
+    <link href="https://mhuang74.github.io/2019/03/02/first-post/"/>
+    <id>https://mhuang74.github.io/2019/03/02/first-post/</id>
+    <published>2019-03-01T21:18:22.000Z</published>
+    <updated>2019-03-01T21:19:10.618Z</updated>
+    
+    <content type="html"><![CDATA[<p>This is my very first post. A small step towards big thinking!</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;This is my very first post. A small step towards big thinking!&lt;/p&gt;
+
+      
+    
+    </summary>
+    
+    
+  </entry>
+  
+</feed>
