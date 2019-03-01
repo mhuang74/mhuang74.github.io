@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://mhuang74.github.io/"/>
-  <updated>2019-03-01T21:19:10.618Z</updated>
+  <updated>2019-03-01T22:07:49.528Z</updated>
   <id>https://mhuang74.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>another_post</title>
+    <link href="https://mhuang74.github.io/2019/03/02/another-post/"/>
+    <id>https://mhuang74.github.io/2019/03/02/another-post/</id>
+    <published>2019-03-01T22:07:21.000Z</published>
+    <updated>2019-03-01T22:07:49.528Z</updated>
+    
+    <content type="html"><![CDATA[<p>Just for kicks, here’s another follow-up post.</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;Just for kicks, here’s another follow-up post.&lt;/p&gt;
+
+      
+    
+    </summary>
+    
+    
+  </entry>
   
   <entry>
     <title>first-post</title>
