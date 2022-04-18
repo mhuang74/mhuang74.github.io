@@ -1,10 +1,9 @@
-## Website: mhuang74.github.io 
-
+## Website: mhuang74.github.io
 
 ## Getting Started
 
-* Install [Zola](https://www.getzola.org/) v0.13
 * `$ zola serve`
+* Browse to `http://localhost:1111`
 
 ## Powered by
 

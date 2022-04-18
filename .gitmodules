@@ -1,0 +1,3 @@
+[submodule "themes/deep-thought"]
+	path = themes/deep-thought
+	url = https://github.com/RatanShreshtha/DeepThought

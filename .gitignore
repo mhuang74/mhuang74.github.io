@@ -1,0 +1,8 @@
+# OS X
+.DS_Store
+
+# Zola build
+/public/
+
+
+
