@@ -31,9 +31,9 @@ __2021 Article List__
 My list for 2021 was too broad, and each area I dabbled in wasn't deep enough to write about. So for 2022, I would like to keep a narrow focus.
 
 __2022 Focus: Rust and Google Ads__
-* Q1: Challenges with building a Google Ads GAQL CLI with Rust gRPC
-* Q2: Generating Google Ads Dashboard with Rust Static Site Generator Zola
-* Q3: Google Ads performance anamoly detection with Rust
+* Q1: Google Ads GAQL CLI with Rust gRPC
+* Q2: Google Ads Dashboard with Rust Static Site Generator Zola
+* Q3: Google Ads Performance Anamoly Detection with Rust
 * Q4: Bonus article
 
 With a concrete schedule set, lets see how I fare this year.
