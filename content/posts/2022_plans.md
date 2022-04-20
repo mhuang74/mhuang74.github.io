@@ -28,7 +28,7 @@ __2021 Article List__
 * Machine Learning. Anomaly detection areas.
 
 
-My list for 2021 was too broad, and each area I dabbled in wasn't deep enough to write about. So for 2022, I would like to keep a narrow focus.
+My list for 2021 was too broad, and each area I dabbled in wasn't deep enough to write about. So for 2022, I would like to keep a narrow focus on 2 things: Rust and Google Ads.
 
 __2022 Focus: Rust and Google Ads__
 * Q1: Google Ads GAQL CLI with Rust gRPC
