@@ -1,5 +1,5 @@
 # The base URL of the site; the only required configuration variable.
-base_url = "https://mhuang74.github.io"
+base_url = "https://michaelhuang.xyz"
 
 # The site title and description; used in feeds by default.
 title = "mhuang74's blog"
