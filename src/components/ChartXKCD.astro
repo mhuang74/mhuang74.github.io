@@ -1,0 +1,51 @@
+---
+export interface Props {
+  type: string;
+  title?: string;
+  xLabel?: string;
+  yLabel?: string;
+  data: object;
+}
+
+const { type, title, xLabel, yLabel, data } = Astro.props;
+const chartId = `chart-${Math.random().toString(36).substring(7)}`;
+const config = JSON.stringify({ type, title, xLabel, yLabel, data });
+---
+
+<div class="chart-xkcd-container my-8">
+  <svg id={chartId} class="chart-xkcd"></svg>
+</div>
+
+<script is:inline define:vars={{ chartId, config }}>
+  // Wait for chart.xkcd library to load
+  if (typeof chartXkcd !== 'undefined') {
+    const chartConfig = JSON.parse(config);
+    const svg = document.getElementById(chartId);
+
+    if (chartConfig.type === 'Bar') {
+      new chartXkcd.Bar(svg, chartConfig);
+    } else if (chartConfig.type === 'Line') {
+      new chartXkcd.Line(svg, chartConfig);
+    } else if (chartConfig.type === 'Pie') {
+      new chartXkcd.Pie(svg, chartConfig);
+    } else if (chartConfig.type === 'XY') {
+      new chartXkcd.XY(svg, chartConfig);
+    }
+  } else {
+    console.error('chart.xkcd library not loaded. Make sure to include it in the Layout.');
+  }
+</script>
+
+<style>
+  .chart-xkcd-container {
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .chart-xkcd {
+    max-width: 100%;
+    height: auto;
+  }
+</style>

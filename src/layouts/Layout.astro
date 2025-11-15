@@ -128,7 +128,36 @@ const structuredData = {
       )
     }
 
+    <!-- Google Analytics -->
+    {
+      SITE.googleAnalyticsId && (
+        <>
+          <script
+            is:inline
+            async
+            src={`https://www.googletagmanager.com/gtag/js?id=${SITE.googleAnalyticsId}`}
+          ></script>
+          <script is:inline define:vars={{ googleAnalyticsId: SITE.googleAnalyticsId }}>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+              dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+            gtag("config", googleAnalyticsId);
+          </script>
+        </>
+      )
+    }
+
     <ClientRouter />
+
+    <!-- Vega and Vega-Lite for charts -->
+    <script is:inline src="https://cdn.jsdelivr.net/npm/vega@5.21.0" crossorigin="anonymous"></script>
+    <script is:inline src="https://cdn.jsdelivr.net/npm/vega-lite@5.2.0" crossorigin="anonymous"></script>
+    <script is:inline src="https://cdn.jsdelivr.net/npm/vega-embed@6.20.2" crossorigin="anonymous"></script>
+
+    <!-- Chart.xkcd for hand-drawn style charts -->
+    <script is:inline src="https://cdn.jsdelivr.net/npm/chart.xkcd@1.1.13/dist/chart.xkcd.min.js" crossorigin="anonymous"></script>
 
     <script is:inline src="/toggle-theme.js"></script>
   </head>

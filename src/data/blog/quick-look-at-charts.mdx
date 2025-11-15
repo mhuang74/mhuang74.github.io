@@ -1,0 +1,90 @@
+---
+title: Visualize NYC 311 Call Stats via Zola
+author: Michael Huang
+pubDatetime: 2022-04-09T00:00:00Z
+slug: quick-look-at-charts
+featured: false
+draft: false
+tags:
+  - chart
+  - open data
+  - zola
+description: Play with chart.xkcd and vega-lite
+---
+
+import VegaChart from '@/components/VegaChart.astro';
+import ChartXKCD from '@/components/ChartXKCD.astro';
+
+I want to explore rendering charts via static site generators. Here are a couple of libraries that are easy to integrate.
+
+In this post, I plot open data from NYC 311 call records using:
+
+* [chart.xkcd](https://timqian.com/chart.xkcd/) - a chart library that plots "sketchy", "cartoony" or "hand-drawn" styled charts.
+
+* [vega-lite](https://vega.github.io/vega-lite/) - a high-level grammar of interactive graphics.
+
+Raw data is available [here](/data.csv), or viewed interactively via my test post on [DataTables](/posts/test-table).
+
+Here's a peek at raw csv data.
+
+```
+Unique Key,Created Date,Closed Date,Agency,Agency Name,Complaint Type,Descriptor,Location Type,Incident Zip,Incident Address,Street Name,Cross Street 1,Cross Street 2,Intersection Street 1,Intersection Street 2,Address Type,City,Landmark,Facility Type,Status,Due Date,Resolution Description,Resolution Action Updated Date,Community Board,BBL,Borough,X Coordinate (State Plane),Y Coordinate (State Plane),Open Data Channel Type,Park Facility Name,Park Borough,Vehicle Type,Taxi Company Borough,Taxi Pick Up Location,Bridge Highway Name,Bridge Highway Direction,Road Ramp,Bridge Highway Segment,Latitude,Longitude,Location
+42254749,04/18/2019 09:55:45 PM,04/19/2019 03:45:24 AM,NYPD,New York City Police Department,Noise - Residential,Banging/Pounding,Residential Building/House,11235,3855 SHORE PARKWAY,SHORE PARKWAY,BRAGG STREET,BELT PARKWAY WB KNAPP STREET EN,,,ADDRESS,BROOKLYN,,Precinct,Closed,04/19/2019 05:55:45 AM,The Police Department responded to the complaint and with the information available observed no evidence of the violation at that time.,04/19/2019 03:45:24 AM,15 BROOKLYN,3088060140,BROOKLYN,1002973,152924,PHONE,Unspecified,BROOKLYN,,,,,,,,40.5863974,-73.9325913,"(40.5863974, -73.9325913)"
+```
+
+## [chart.xkcd](https://timqian.com/chart.xkcd/)
+
+[chart.xkcd](https://timqian.com/chart.xkcd/) uses JSON to define axis and dataset, but does not come with any data loading APIs.
+
+Since I don't want to write data wrangling code via javscript, I manually enter pre-aggregated complaint counts into JSON definition below.
+
+__Top 10 NYC 311 Complaint Types__
+
+<ChartXKCD type="Bar" title="Top 10 NYC 311 Complaint Types" xLabel="Complaint Type" yLabel="Count" data={{
+  labels: ["Noise - Residential", "Heat/Hot Water", "Illegal Parking", "Street Condition", "Blocked Driveway", "Street Light Condition", "Plumbing", "Heating", "Water System", "Nosie - Street/Sidewalk"],
+  datasets: [{ data: [162, 129, 91, 86, 85, 71, 70, 70, 63, 63] }]
+}} />
+
+Overall, chart.xkcd is simple to use, looks nice, and tooltip works out of the box.
+
+## [vega-lite](https://vega.github.io/vega-lite/)
+
+It is fairly easy to integrate [vega-lite](https://vega.github.io/vega-lite/).
+
+vega-lite offers vastly more flexibility in terms of data aggregation, sorting, filtering, and rendering options, but it's also harder to debug.
+
+<VegaChart id="vis" spec={{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "data": {"url": "/data.csv"},
+  "transform": [
+    {
+      "aggregate": [{
+          "op": "count",
+          "field": "Complaint Type",
+          "as": "Complaint_Count",
+      }],
+      "groupby": ["Complaint Type"],
+    },
+  ],
+  "mark": {
+      "type": "bar",
+      "tooltip": true
+  },
+  "encoding": {
+      "x": {
+          "field": "Complaint Type",
+          "type": "ordinal",
+          "bin": false,
+          "sort": "-y"
+      },
+      "y": {
+          "field": "Complaint_Count",
+          "type": "quantitative",
+          "sort": "-y"
+      }
+  }
+}} />
+
+### Summary
+
+I think both libraries have their usecases. I would use chart.xkcd to illustrate a point that only requires a few synthetic data points. Meanwhile, vega-lite's data aggregation, sorting, and filtering options makes it much more versatile for use with real datasets.
