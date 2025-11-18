@@ -11,10 +11,12 @@ tags:
 description: Table showing NYC 311 calls
 ---
 
+import DataTable from '@/components/DataTable.astro';
+
 Testing out rendering table data on a static website.
 
 Here's NYC 311 open data, displayed via [DataTables](https://datatables.net/).
 
 Raw data is available [here](/data.csv).
 
-_Note: This demo originally used a custom template in Zola. The interactive table functionality would need to be reimplemented in Astro using a DataTables component or similar library._
+<DataTable id="nyc311-table" dataUrl="/data.csv" pageLength={10} />
