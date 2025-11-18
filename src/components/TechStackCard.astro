@@ -1,0 +1,45 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  icons?: string[];
+  borderColor?: "cyan" | "yellow" | "orange";
+}
+
+const { title, description, icons = [], borderColor = "cyan" } = Astro.props;
+
+const borderColorClasses = {
+  cyan: "border-l-cyan-400 hover:border-l-cyan-400 hover:border-cyan-400",
+  yellow: "border-l-yellow-400 hover:border-l-yellow-400 hover:border-yellow-400",
+  orange: "border-l-orange-400 hover:border-l-orange-400 hover:border-orange-400",
+};
+---
+
+<div
+  class={`tech-card group relative rounded-lg border-2 border-transparent border-l-4 p-6 transition-all duration-300 hover:shadow-lg ${borderColorClasses[borderColor]}`}
+>
+  <div class="flex items-start justify-between">
+    <h3 class="text-xl font-semibold text-skin-accent">{title}</h3>
+    {
+      icons.length > 0 && (
+        <div class="flex gap-2">
+          {icons.map(icon => (
+            <span class="text-2xl">{icon}</span>
+          ))}
+        </div>
+      )
+    }
+  </div>
+  <p class="mt-3 text-skin-base opacity-90">{description}</p>
+</div>
+
+<style>
+  .tech-card {
+    border-left-width: 4px;
+    background-color: color-mix(in srgb, var(--background), white 7%);
+  }
+
+  .tech-card:hover {
+    transform: translateY(-2px);
+  }
+</style>

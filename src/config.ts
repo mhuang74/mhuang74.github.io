@@ -3,7 +3,7 @@ export const SITE = {
   author: "Michael Huang",
   profile: "https://michaelhuang.xyz",
   desc: "Writings by Michael S. Huang",
-  title: "mhuang74's blog",
+  title: "Michael S. Huang",
   ogImage: "blog-cover-fractal.jpg",
   lightAndDarkMode: true,
   postPerIndex: 5,
