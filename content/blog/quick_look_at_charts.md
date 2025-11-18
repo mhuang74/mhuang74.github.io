@@ -16,7 +16,7 @@ In this post, I plot open data from NYC 311 call records using:
 
 * [vega-lite](https://vega.github.io/vega-lite/) - a high-level grammar of interactive graphics.
 
-Raw data is available [here](/data.csv), or viewed interactively via my test post on [DataTables](@/posts/test_table.md).
+Raw data is available [here](/data.csv), or viewed interactively via my test post on [DataTables](@/blog/test_table.md).
 
 Here's a peek at raw csv data.
 
