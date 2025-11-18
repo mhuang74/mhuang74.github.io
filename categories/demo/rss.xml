@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+      <title>Site for Michael S. Huang - Demo</title>
+      <link>https://michaelhuang.xyz</link>
+      <description>A few interesting things about me</description>
+      <generator>Zola</generator>
+      <language>en</language>
+      <atom:link href="https://michaelhuang.xyz/categories/demo/rss.xml" rel="self" type="application/rss+xml"/>
+      <lastBuildDate>Sun, 27 Mar 2022 00:00:00 +0000</lastBuildDate>
+      <item>
+          <title>Table Demo: NYC 311 Calls</title>
+          <pubDate>Sun, 27 Mar 2022 00:00:00 +0000</pubDate>
+          <author>Unknown</author>
+          <link>https://michaelhuang.xyz/blog/test-table/</link>
+          <guid>https://michaelhuang.xyz/blog/test-table/</guid>
+          <description xml:base="https://michaelhuang.xyz/blog/test-table/">&lt;p&gt;Testing out rendering table data on a static website.&lt;&#x2F;p&gt;
+&lt;p&gt;Here&#x27;s NYC 311 open data, displayed via &lt;a rel=&quot;noopener nofollow noreferrer&quot; target=&quot;_blank&quot; href=&quot;https:&#x2F;&#x2F;datatables.net&#x2F;&quot;&gt;DataTables&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;</description>
+      </item>
+    </channel>
+</rss>

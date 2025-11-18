@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+      <title>Site for Michael S. Huang - Learnings</title>
+      <link>https://michaelhuang.xyz</link>
+      <description>A few interesting things about me</description>
+      <generator>Zola</generator>
+      <language>en</language>
+      <atom:link href="https://michaelhuang.xyz/categories/learnings/rss.xml" rel="self" type="application/rss+xml"/>
+      <lastBuildDate>Tue, 29 Mar 2022 00:00:00 +0000</lastBuildDate>
+      <item>
+          <title>What contributing to QSV taught me</title>
+          <pubDate>Tue, 29 Mar 2022 00:00:00 +0000</pubDate>
+          <author>Unknown</author>
+          <link>https://michaelhuang.xyz/blog/qsv-lessons/</link>
+          <guid>https://michaelhuang.xyz/blog/qsv-lessons/</guid>
+          <description xml:base="https://michaelhuang.xyz/blog/qsv-lessons/">&lt;p&gt;I kinda had to learn Rust, because I sucked at C&#x2F;C++ so badly. Once beyond the fun phase of copy-and-paste Adruino programming, my fascination with microcontrollers inevitably threw me back into the C&#x2F;C++ nightmare of my college years. I could do Java&#x2F;Scala&#x2F;Python, but still clueless about how to properly manipulate strings in C&#x2F;C++. So Rust was kinda my lifeboat.&lt;&#x2F;p&gt;</description>
+      </item>
+    </channel>
+</rss>

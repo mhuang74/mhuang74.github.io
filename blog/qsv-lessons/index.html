@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <meta content="#ffffff" name="theme-color" />
+  <meta content="#da532c" name="msapplication-TileColor" />
+
+  
+  <link href='&#x2F;icons&#x2F;site.webmanifest' rel="manifest" />
+  
+  
+  <link color="#5bbad5" href='&#x2F;icons&#x2F;safari-pinned-tab.svg' rel="mask-icon" />
+  
+  
+  <link href='&#x2F;icons&#x2F;favicon-16x16.png' rel="icon" sizes="16x16" type="image/png" />
+  
+  
+  <link href='&#x2F;icons&#x2F;favicon-32x32.png' rel="icon" sizes="32x32" type="image/png" />
+  
+  
+  <link href='&#x2F;icons&#x2F;apple-touch-icon.png' rel="apple-touch-icon" sizes="180x180" />
+  
+
+  
+
+  
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1.9.1/css/academicons.min.css" integrity="sha384-FIue+PI4SsI9XfHCz8dBLg33b0c1fMJgNU3X//L26FYbGnlSEfWmNT7zgWc2N9b6" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css" integrity="sha256-AbA177XfpSnFEvgpYu1jMygiLabzPCJCRIBtR5jGc0k=" crossorigin="anonymous">
+  <link href="https://michaelhuang.xyz/deep-thought.css" rel="stylesheet" />
+  
+
+<script src="https://cdn.jsdelivr.net/npm/vega@5.21.0" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-lite@5.2.0" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-embed@6.20.2" crossorigin="anonymous"></script>
+
+
+
+  <title>
+    
+Site for Michael S. Huang | What contributing to QSV taught me
+
+  </title>
+
+  
+  
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-3VYKYSGLFF"></script>
+  <script type="text/javascript">
+    window.dataLayer = window.dataLayer || [];
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+    gtag("js", new Date());
+    gtag("config", "G-3VYKYSGLFF");
+  </script>
+  
+  
+
+  
+</head>
+
+<body class="has-background-white">
+  <nav aria-label="section navigation" class="navbar is-light" role="navigation">
+    <div class="container">
+      <div class="navbar-brand">
+        <a class="navbar-item is-size-5 has-text-weight-bold" href="https:&#x2F;&#x2F;michaelhuang.xyz">Site for Michael S. Huang</a>
+        <a aria-expanded="false" aria-label="menu" class="navbar-burger burger" data-target="navMenu" role="button">
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </a>
+      </div>
+      <div class="navbar-menu" id="navMenu">
+        <div class="navbar-end has-text-centered">
+          
+          
+          
+          <a class="navbar-item has-text-weight-semibold" href="https:&#x2F;&#x2F;michaelhuang.xyz&#x2F;">
+            Home
+          </a>
+          
+          <a class="navbar-item has-text-weight-semibold" href="https:&#x2F;&#x2F;michaelhuang.xyz&#x2F;blog">
+            Blog
+          </a>
+          
+          <a class="navbar-item has-text-weight-semibold" href="https:&#x2F;&#x2F;michaelhuang.xyz&#x2F;apps">
+            Apps
+          </a>
+          
+          
+          
+          <a class="navbar-item" id="nav-search" title="Search" data-target="#search-modal">
+            <span class="icon">
+              <i class="fas fa-search"></i>
+            </span>
+          </a>
+          <a class="navbar-item" id="dark-mode" title="Switch to dark theme">
+            <span class="icon">
+              <i class="fas fa-adjust"></i>
+            </span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  
+  
+
+  
+<section class="section">
+  <div class="container">
+    <div class="columns">
+      <div class="column is-8 is-offset-2">
+        <article class="box">
+          <h1 class="title">
+            What contributing to QSV taught me
+          </h1>
+          <p class="subtitle">Learning Rust with my first real project</p>
+          <div class="columns is-multiline is-gapless">
+            <div class="column is-8">
+              
+<span class="icon-text has-text-grey">
+  <span class="icon">
+    <i class="far fa-calendar-alt"></i>
+  </span>
+  <span><time datetime="2022-03-29">March 29, 2022</time></span>
+</span>
+
+            </div>
+            <div class="column is-4 has-text-right-desktop">
+              
+<span class="icon-text has-text-grey">
+  <span class="icon">
+    <i class="far fa-clock"></i>
+  </span>
+  <span>3 min,</span>
+  <span class="icon">
+    <i class="fas fa-pencil-alt"></i>
+  </span>
+  <span>570 words</span>
+</span>
+
+            </div>
+            <div class="column">
+              
+              
+<p>
+  Categories:
+  
+  <a class="has-text-info-dark has-text-weight-semibold" href="https://michaelhuang.xyz/categories/learnings/">
+    <span class="icon-text">
+      <span class="icon">
+        <i class="fas fa-cube"></i>
+      </span>
+      <span>Learnings</span>
+    </span>
+  </a>
+  
+</p>
+
+              
+            </div>
+            <div class="column has-text-right-desktop">
+              
+              
+<p>
+  Tags:
+  
+  <a class="has-text-info-dark has-text-weight-semibold" href="https://michaelhuang.xyz/tags/rust/">
+    <span class="icon-text">
+      <span class="icon">
+        <i class="fas fa-tag"></i>
+      </span>
+      <span>rust</span>
+    </span>
+  </a>
+  
+</p>
+
+              
+            </div>
+          </div>
+          <div class="content mt-2">
+            <p>I kinda had to learn Rust, because I sucked at C/C++ so badly. Once beyond the fun phase of copy-and-paste Adruino programming, my fascination with microcontrollers inevitably threw me back into the C/C++ nightmare of my college years. I could do Java/Scala/Python, but still clueless about how to properly manipulate strings in C/C++. So Rust was kinda my lifeboat.</p>
+<span id="continue-reading"></span>
+<p>And in order to learn Rust, I had to do a real project. After a few false starts, I stumbled upon a neat little project called <a rel="noopener nofollow noreferrer" target="_blank" href="https://github.com/BurntSushi/xsv">xsv</a> that can JOIN csv files with blazing speed. Kinda like what we use Spark for at work, except condensed into one tiny CLI tool. Eventually I found the one active fork called <a rel="noopener nofollow noreferrer" target="_blank" href="https://github.com/jqnatividad/qsv">qsv</a> maintained by friendly Joel and decided to jump in.</p>
+<p>Here are a few takeaways from my very first real Rust project.</p>
+<p><strong>No need for Rust Debugger</strong></p>
+<p>I sunk in a few days trying to get LLDB and GDB debugging flow working. The payoff was too small. I am sure I would need such powerful tools someday, but for my simple and occasional needs, <code>dbg!()</code> is enough.</p>
+<p><em>rustfmt is a Friend, and clippy is a Mentor</em>_</p>
+<p>I received some complaints for my first few PR's because I wasn't used to running <code>cargo fmt</code>. Same with <code>cargo clippy</code>. Then I found that I could be sloppy with my whitespaces and indentations as long as I run rustfmt later. And clippy made me feel like having a personal mentor standing over my shoulders to check my newbie Rust code.</p>
+<p><strong>Cargo Check on Save</strong></p>
+<p>I had disabled cargo-check-on-save for a while because my laptop would almost freeze with all the work it's doing. Then I read the first section of <a rel="noopener nofollow noreferrer" target="_blank" href="https://algoluca.gumroad.com/l/zero2prod">Zero to Production in Rust</a> and decided to give it another try in order to decrease perceived compilation time. It made a night and day difference to my productivity! Compilation errors appear immediately after making changes, all visually annotated right with the source in vscode.</p>
+<p><strong>It's Okay to Upgrade the Compiler</strong></p>
+<p>I don't ever remember upgrading the compiler so frequently in Java or Python land. Just a few days after new Rust release, qsv would actually pick up new Rust language features, and I would be forced to upgrade my Rust version in order to compile. With Rustup, it just worked.</p>
+<p><strong>Rust likes Memory</strong></p>
+<p>It's easy to go over default stack size of 2MB with large arrays <code>[u8]</code> instead of vectors <code>Vec&lt;u8&gt;</code>.</p>
+<p>And because Rust works so well, sometimes we forget and try to load really large files that exhausts hardware RAM. It's amazing that there's no segmentation fault!</p>
+<p><strong>Serde is Slow, and so is Clone()</strong></p>
+<p>Serde is used pervasively in Rust. Convenience is costly though. Fast code needs to avoid serde.</p>
+<p>Sprinkling <code>clone()</code> around is probably the easiest way to silence borrow-checker errors. But payment may come due in terms of performance. Write correct Rust code without resorting to clone().</p>
+<p><strong>Rayon and Streaming Data</strong></p>
+<p>It would seem that Rayon parallel processing wouldn't work with streaming data because data would be arriving one at a time. I learned from <a rel="noopener nofollow noreferrer" target="_blank" href="https://morestina.net/blog/1432/parallel-stream-processing-with-rayon">More Stina Blog!</a> that streaming data can first be put into batches, then Rayon parallel iterator can plow through them as usual.</p>
+
+          </div>
+        </article>
+      </div>
+      
+    </div>
+  </div>
+</section>
+
+
+  
+  <section class="modal" id="search-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <header class="modal-card-head">
+        <p class="modal-card-title">Search</p>
+      </header>
+      <section class="modal-card-body">
+        <div class="field mb-2">
+          <div class="control">
+            <input class="input" id="search" placeholder="Search this website." type="search" />
+          </div>
+        </div>
+        <div class="search-results">
+          <div class="search-results__items"></div>
+        </div>
+      </section>
+    </div>
+    <button aria-label="close" class="modal-close is-large"></button>
+  </section>
+  
+
+
+  
+
+<section class="section">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <nav class="level">
+              
+          <div class="level-item has-text-centered">
+            <a class="button is-black is-outlined" href="https:&#x2F;&#x2F;michaelhuang.xyz&#x2F;blog&#x2F;2022-plans&#x2F;">
+              <span class="icon mr-2">
+                <i class="fas fa-arrow-circle-left"></i>
+              </span>
+              2022 Writing Plans
+            </a>
+          </div>
+           
+          <div class="level-item has-text-centered">
+            <a class="button is-black is-outlined" href="https:&#x2F;&#x2F;michaelhuang.xyz&#x2F;blog&#x2F;quick-look-at-charts&#x2F;">
+              Visualize NYC 311 Call Stats via Zola<span class="icon ml-2">
+                <i class="fas fa-arrow-circle-right"></i>
+              </span>
+            </a>
+          </div>
+          
+        </nav>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+  
+
+
+
+  
+  <footer class="footer py-4">
+    <div class="content has-text-centered">
+      <p>
+        Built with
+        <span class="icon-text">
+          <span class="icon">
+            <i class="fas fa-code"></i>
+          </span>
+          <span>code</span>
+        </span>
+        and
+        <span class="icon-text">
+          <span class="icon">
+            <i class="fas fa-heart"></i>
+          </span>
+          <span>love</span>
+        </span>
+      </p>
+      <p>
+        Powered by
+        <span class="icon-text">
+          <span class="icon">
+            <i class="fas fa-power-off"></i>
+          </span>
+          <span>zola</span>
+        </span>
+      </p>
+    </div>
+  </footer>
+  
+
+  
+  
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.xkcd@1.1.13/dist/chart.xkcd.min.js" integrity="sha384-xC3h1+IHXK8seA+8KfT79Z4e0GPsznjXBoMa5nd8ooWKplPyXx92NOmljWxLC/cs" crossorigin="anonymous"></script>
+  
+  
+  <script src="https://michaelhuang.xyz/elasticlunr.min.js"></script>
+  <script src="https://michaelhuang.xyz/search_index.en.js"></script><script src="https://michaelhuang.xyz/js/site.js"></script>
+
+  
+
+
+
+
+
+  
+  
+</body>
+
+</html>

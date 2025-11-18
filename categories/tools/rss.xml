@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+      <title>Site for Michael S. Huang - Tools</title>
+      <link>https://michaelhuang.xyz</link>
+      <description>A few interesting things about me</description>
+      <generator>Zola</generator>
+      <language>en</language>
+      <atom:link href="https://michaelhuang.xyz/categories/tools/rss.xml" rel="self" type="application/rss+xml"/>
+      <lastBuildDate>Fri, 14 Nov 2025 00:00:00 +0000</lastBuildDate>
+      <item>
+          <title>HandsOff - Protection from little fingers and paws</title>
+          <pubDate>Fri, 14 Nov 2025 00:00:00 +0000</pubDate>
+          <author>Unknown</author>
+          <link>https://michaelhuang.xyz/apps/handsoff/</link>
+          <guid>https://michaelhuang.xyz/apps/handsoff/</guid>
+          <description xml:base="https://michaelhuang.xyz/apps/handsoff/">&lt;p&gt;Have you ever been on a video call when your cat walks across your keyboard, sending embarrassing gibberish to your colleagues? Or had your toddler &quot;help&quot; with your presentation by clicking everything in sight? HandsOff is a native macOS utility that solves these problems by blocking all keyboard, trackpad, and mouse input while keeping your screen fully visible.&lt;&#x2F;p&gt;</description>
+      </item>
+    </channel>
+</rss>
