@@ -13,6 +13,7 @@ const specJson = JSON.stringify(spec);
 <script is:inline define:vars={{ id, specJson }}>
   // Wait for vega libraries to load
   function render() {
+    if (!document.getElementById(id)) return;
     if (typeof vegaEmbed !== "undefined") {
       const spec = JSON.parse(specJson);
       // eslint-disable-next-line no-console

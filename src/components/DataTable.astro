@@ -47,6 +47,7 @@ const { id, dataUrl, pageLength = 10 } = Astro.props;
 
   // Wait for jQuery and DataTables to load
   function initDataTable() {
+    if (!document.getElementById(id)) return;
     if (typeof jQuery !== "undefined" && jQuery.fn.DataTable) {
       jQuery.ajax({
         url: dataUrl,

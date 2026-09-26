@@ -22,6 +22,7 @@ const config = JSON.stringify({ type, title, xLabel, yLabel, data });
     if (typeof chartXkcd !== "undefined") {
       const chartConfig = JSON.parse(config);
       const svg = document.getElementById(chartId);
+      if (!svg) return;
       // clear previous render so re-arrival doesn't double-draw
       svg.innerHTML = "";
 
