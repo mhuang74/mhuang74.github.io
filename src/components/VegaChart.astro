@@ -1,0 +1,55 @@
+---
+export interface Props {
+  id: string;
+  spec: object;
+}
+
+const { id, spec } = Astro.props;
+const specJson = JSON.stringify(spec);
+---
+
+<div id={id} class="vega-chart-container my-8"></div>
+
+<script is:inline define:vars={{ id, specJson }}>
+  // Wait for vega libraries to load
+  function render() {
+    if (!document.getElementById(id)) return;
+    if (typeof vegaEmbed !== "undefined") {
+      const spec = JSON.parse(specJson);
+      // eslint-disable-next-line no-console
+      const logError = console.error;
+      vegaEmbed(`#${id}`, spec, {
+        actions: {
+          export: true,
+          source: false,
+          compiled: false,
+          editor: false,
+        },
+      })
+        .then(function () {
+          // Chart rendered successfully
+        })
+        .catch(logError);
+    } else {
+      // eslint-disable-next-line no-console
+      console.error(
+        "Vega libraries not loaded. Make sure to include them in the Layout."
+      );
+    }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", render);
+  } else {
+    render();
+  }
+  // document-level listeners survive ClientRouter swaps; re-render on arrival
+  document.addEventListener("astro:after-swap", render);
+</script>
+
+<style>
+  .vega-chart-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+</style>

@@ -1,0 +1,22 @@
+---
+title: Table Demo NYC 311 Calls
+author: Michael Huang
+pubDatetime: 2022-03-27T00:00:00Z
+slug: test-table
+featured: false
+draft: false
+tags:
+  - table
+  - open data
+description: Table showing NYC 311 calls
+---
+
+import DataTable from "@/components/DataTable.astro";
+
+Testing out rendering table data on a static website.
+
+Here's NYC 311 open data, displayed via [DataTables](https://datatables.net/).
+
+Raw data is available [here](/data.csv).
+
+<DataTable id="nyc311-table" dataUrl="/data.csv" pageLength={10} />

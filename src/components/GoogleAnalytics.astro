@@ -1,0 +1,23 @@
+---
+import { SITE } from "@/config";
+---
+
+{
+  SITE.googleAnalyticsId ? (
+    <>
+      <script
+        is:inline
+        async
+        src={`https://www.googletagmanager.com/gtag/js?id=${SITE.googleAnalyticsId}`}
+      />
+    </>
+  ) : null
+}
+<script is:inline define:vars={{ googleAnalyticsId: SITE.googleAnalyticsId }}>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(...args) {
+    dataLayer.push(...args);
+  }
+  gtag("js", new Date());
+  gtag("config", googleAnalyticsId);
+</script>
