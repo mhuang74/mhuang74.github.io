@@ -2,6 +2,7 @@
 import { ClientRouter } from "astro:transitions";
 import { PUBLIC_GOOGLE_SITE_VERIFICATION } from "astro:env/client";
 import { SITE } from "@/config";
+import GoogleAnalytics from "@/components/GoogleAnalytics.astro";
 import "@/styles/global.css";
 
 export interface Props {
@@ -50,7 +51,7 @@ const structuredData = {
 <!doctype html>
 <html
   dir={SITE.dir}
-  lang=`${SITE.lang ?? "en"}`
+  lang={SITE.lang ?? "en"}
   class={`${scrollSmooth && "scroll-smooth"}`}
 >
   <head>
@@ -129,40 +130,44 @@ const structuredData = {
     }
 
     <!-- Google Analytics -->
-    {
-      SITE.googleAnalyticsId && (
-        <>
-          <script
-            is:inline
-            async
-            src={`https://www.googletagmanager.com/gtag/js?id=${SITE.googleAnalyticsId}`}
-          ></script>
-          <script is:inline define:vars={{ googleAnalyticsId: SITE.googleAnalyticsId }}>
-            window.dataLayer = window.dataLayer || [];
-            function gtag() {
-              dataLayer.push(arguments);
-            }
-            gtag("js", new Date());
-            gtag("config", googleAnalyticsId);
-          </script>
-        </>
-      )
-    }
+    <GoogleAnalytics />
 
     <ClientRouter />
 
     <!-- Vega and Vega-Lite for charts -->
-    <script is:inline src="https://cdn.jsdelivr.net/npm/vega@5.21.0" crossorigin="anonymous"></script>
-    <script is:inline src="https://cdn.jsdelivr.net/npm/vega-lite@5.2.0" crossorigin="anonymous"></script>
-    <script is:inline src="https://cdn.jsdelivr.net/npm/vega-embed@6.20.2" crossorigin="anonymous"></script>
+    <script
+      is:inline
+      src="https://cdn.jsdelivr.net/npm/vega@5.21.0"
+      crossorigin="anonymous"></script>
+    <script
+      is:inline
+      src="https://cdn.jsdelivr.net/npm/vega-lite@5.2.0"
+      crossorigin="anonymous"></script>
+    <script
+      is:inline
+      src="https://cdn.jsdelivr.net/npm/vega-embed@6.20.2"
+      crossorigin="anonymous"></script>
 
     <!-- Chart.xkcd for hand-drawn style charts -->
-    <script is:inline src="https://cdn.jsdelivr.net/npm/chart.xkcd@1.1.13/dist/chart.xkcd.min.js" crossorigin="anonymous"></script>
+    <script
+      is:inline
+      src="https://cdn.jsdelivr.net/npm/chart.xkcd@1.1.13/dist/chart.xkcd.min.js"
+      crossorigin="anonymous"></script>
 
     <!-- DataTables for interactive tables -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" crossorigin="anonymous" />
-    <script is:inline src="https://code.jquery.com/jquery-3.7.0.min.js" crossorigin="anonymous"></script>
-    <script is:inline src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js" crossorigin="anonymous"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css"
+      crossorigin="anonymous"
+    />
+    <script
+      is:inline
+      src="https://code.jquery.com/jquery-3.7.0.min.js"
+      crossorigin="anonymous"></script>
+    <script
+      is:inline
+      src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"
+      crossorigin="anonymous"></script>
 
     <script is:inline src="/toggle-theme.js"></script>
   </head>

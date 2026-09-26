@@ -12,20 +12,27 @@ const specJson = JSON.stringify(spec);
 
 <script is:inline define:vars={{ id, specJson }}>
   // Wait for vega libraries to load
-  if (typeof vegaEmbed !== 'undefined') {
+  if (typeof vegaEmbed !== "undefined") {
     const spec = JSON.parse(specJson);
+    // eslint-disable-next-line no-console
+    const logError = console.error;
     vegaEmbed(`#${id}`, spec, {
       actions: {
         export: true,
         source: false,
         compiled: false,
-        editor: false
-      }
-    }).then(function(_result) {
-      // Chart rendered successfully
-    }).catch(console.error);
+        editor: false,
+      },
+    })
+      .then(function () {
+        // Chart rendered successfully
+      })
+      .catch(logError);
   } else {
-    console.error('Vega libraries not loaded. Make sure to include them in the Layout.');
+    // eslint-disable-next-line no-console
+    console.error(
+      "Vega libraries not loaded. Make sure to include them in the Layout."
+    );
   }
 </script>
 

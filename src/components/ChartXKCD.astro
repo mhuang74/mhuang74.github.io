@@ -18,21 +18,24 @@ const config = JSON.stringify({ type, title, xLabel, yLabel, data });
 
 <script is:inline define:vars={{ chartId, config }}>
   // Wait for chart.xkcd library to load
-  if (typeof chartXkcd !== 'undefined') {
+  if (typeof chartXkcd !== "undefined") {
     const chartConfig = JSON.parse(config);
     const svg = document.getElementById(chartId);
 
-    if (chartConfig.type === 'Bar') {
+    if (chartConfig.type === "Bar") {
       new chartXkcd.Bar(svg, chartConfig);
-    } else if (chartConfig.type === 'Line') {
+    } else if (chartConfig.type === "Line") {
       new chartXkcd.Line(svg, chartConfig);
-    } else if (chartConfig.type === 'Pie') {
+    } else if (chartConfig.type === "Pie") {
       new chartXkcd.Pie(svg, chartConfig);
-    } else if (chartConfig.type === 'XY') {
+    } else if (chartConfig.type === "XY") {
       new chartXkcd.XY(svg, chartConfig);
     }
   } else {
-    console.error('chart.xkcd library not loaded. Make sure to include it in the Layout.');
+    // eslint-disable-next-line no-console
+    console.error(
+      "chart.xkcd library not loaded. Make sure to include it in the Layout."
+    );
   }
 </script>
 

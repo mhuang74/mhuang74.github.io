@@ -10,8 +10,10 @@ const { title, description, icons = [], borderColor = "cyan" } = Astro.props;
 
 const borderColorClasses = {
   cyan: "border-l-cyan-400 hover:border-l-cyan-400 hover:border-cyan-400",
-  yellow: "border-l-yellow-400 hover:border-l-yellow-400 hover:border-yellow-400",
-  orange: "border-l-orange-400 hover:border-l-orange-400 hover:border-orange-400",
+  yellow:
+    "border-l-yellow-400 hover:border-l-yellow-400 hover:border-yellow-400",
+  orange:
+    "border-l-orange-400 hover:border-l-orange-400 hover:border-orange-400",
 };
 ---
 
@@ -19,7 +21,7 @@ const borderColorClasses = {
   class={`tech-card group relative rounded-lg border-2 border-transparent border-l-4 p-6 transition-all duration-300 hover:shadow-lg ${borderColorClasses[borderColor]}`}
 >
   <div class="flex items-start justify-between">
-    <h3 class="text-xl font-semibold text-skin-accent">{title}</h3>
+    <h3 class="text-skin-accent text-xl font-semibold">{title}</h3>
     {
       icons.length > 0 && (
         <div class="flex gap-2">
@@ -30,7 +32,7 @@ const borderColorClasses = {
       )
     }
   </div>
-  <p class="mt-3 text-skin-base opacity-90">{description}</p>
+  <p class="text-skin-base mt-3 opacity-90">{description}</p>
 </div>
 
 <style>

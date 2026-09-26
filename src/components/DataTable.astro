@@ -14,7 +14,7 @@ const { id, dataUrl, pageLength = 10 } = Astro.props;
   // Proper CSV parser that handles quoted fields with commas
   function parseCSVLine(line) {
     const result = [];
-    let current = '';
+    let current = "";
     let inQuotes = false;
 
     for (let i = 0; i < line.length; i++) {
@@ -30,10 +30,10 @@ const { id, dataUrl, pageLength = 10 } = Astro.props;
           // Toggle quote state
           inQuotes = !inQuotes;
         }
-      } else if (char === ',' && !inQuotes) {
+      } else if (char === "," && !inQuotes) {
         // End of field
         result.push(current);
-        current = '';
+        current = "";
       } else {
         current += char;
       }
@@ -47,55 +47,64 @@ const { id, dataUrl, pageLength = 10 } = Astro.props;
 
   // Wait for jQuery and DataTables to load
   function initDataTable() {
-    if (typeof jQuery !== 'undefined' && jQuery.fn.DataTable) {
+    if (typeof jQuery !== "undefined" && jQuery.fn.DataTable) {
       jQuery.ajax({
         url: dataUrl,
-        dataType: 'text',
-        success: function(data) {
+        dataType: "text",
+        success: function (data) {
           // Parse CSV data
-          const lines = data.split('\n').filter(function(line) { return line.trim(); });
+          const lines = data.split("\n").filter(function (line) {
+            return line.trim();
+          });
           const headers = parseCSVLine(lines[0]);
 
           // Create table HTML
-          let tableHtml = '<table id="' + id + '-table" class="display" style="width:100%"><thead><tr>';
-          headers.forEach(function(header) {
-            tableHtml += '<th>' + header.trim() + '</th>';
+          let tableHtml =
+            '<table id="' +
+            id +
+            '-table" class="display" style="width:100%"><thead><tr>';
+          headers.forEach(function (header) {
+            tableHtml += "<th>" + header.trim() + "</th>";
           });
-          tableHtml += '</tr></thead><tbody>';
+          tableHtml += "</tr></thead><tbody>";
 
           // Add data rows
           for (let i = 1; i < lines.length; i++) {
             const cells = parseCSVLine(lines[i]);
             if (cells.length === headers.length) {
-              tableHtml += '<tr>';
-              cells.forEach(function(cell) {
+              tableHtml += "<tr>";
+              cells.forEach(function (cell) {
                 // Escape HTML to prevent XSS
-                const escaped = cell.replace(/&/g, '&amp;')
-                                   .replace(/</g, '&lt;')
-                                   .replace(/>/g, '&gt;')
-                                   .replace(/"/g, '&quot;');
-                tableHtml += '<td>' + escaped + '</td>';
+                const escaped = cell
+                  .replace(/&/g, "&amp;")
+                  .replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;")
+                  .replace(/"/g, "&quot;");
+                tableHtml += "<td>" + escaped + "</td>";
               });
-              tableHtml += '</tr>';
+              tableHtml += "</tr>";
             }
           }
-          tableHtml += '</tbody></table>';
+          tableHtml += "</tbody></table>";
 
           // Insert table into container
-          jQuery('#' + id).html(tableHtml);
+          jQuery("#" + id).html(tableHtml);
 
           // Initialize DataTable
-          jQuery('#' + id + '-table').DataTable({
+          jQuery("#" + id + "-table").DataTable({
             pageLength: pageLength,
-            order: [[0, 'desc']],
+            order: [[0, "desc"]],
             responsive: true,
-            scrollX: true
+            scrollX: true,
           });
         },
-        error: function(_xhr, _status, error) {
-          console.error('Error loading data:', error);
-          jQuery('#' + id).html('<p style="color: red;">Error loading table data. Please check the data URL.</p>');
-        }
+        error: function (_xhr, _status, error) {
+          // eslint-disable-next-line no-console
+          console.error("Error loading data:", error);
+          jQuery("#" + id).html(
+            '<p style="color: red;">Error loading table data. Please check the data URL.</p>'
+          );
+        },
       });
     } else {
       setTimeout(initDataTable, 100);
@@ -103,8 +112,8 @@ const { id, dataUrl, pageLength = 10 } = Astro.props;
   }
 
   // Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initDataTable);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initDataTable);
   } else {
     initDataTable();
   }
