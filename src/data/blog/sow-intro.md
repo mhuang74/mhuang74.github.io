@@ -11,7 +11,7 @@ tags:
 description: Introducing a series on building Stream of Worship, a system for seamless Chinese worship music transitions
 ---
 
-Every Sunday, worship teams face a small but nagging problem: what happens *between* the songs? Someone fumbles with a laptop, there's an awkward silence, the congregation settles out of the mood the last song built — and then the next song starts from a cold stop. For English-language worship there's no shortage of tools, but for Chinese worship music (中文敬拜詩歌), the catalog, the lyrics, even the audio sources live in scattered places with no tooling at all.
+Every Sunday, worship teams face a small but nagging problem: what happens _between_ the songs? Someone fumbles with a laptop, there's an awkward silence, the congregation settles out of the mood the last song built — and then the next song starts from a cold stop. For English-language worship there's no shortage of tools, but for Chinese worship music (中文敬拜詩歌), the catalog, the lyrics, even the audio sources live in scattered places with no tooling at all.
 
 [Stream of Worship](https://streamofworship.com) is my attempt to fix that: a system that analyzes songs (tempo, key, structure), strings them into smooth transitions, and renders ready-to-play audio and lyrics videos — so a worship leader can go from "here's my song list" to a seamless, offline-capable worship set.
 
@@ -21,7 +21,7 @@ This post kicks off a series on how it's built. Think of it as the map for what'
 
 ## What Stream of Worship does
 
-At its core, SOW answers one question: *given a set of Chinese worship songs, produce a single continuous playback where each song flows into the next without a hard stop.*
+At its core, SOW answers one question: _given a set of Chinese worship songs, produce a single continuous playback where each song flows into the next without a hard stop._
 
 To get there, the system does four things:
 
@@ -29,7 +29,7 @@ To get there, the system does four things:
 
 2. **Analyzes every recording.** A GPU-heavy analysis service runs structural analysis (beats, downbeats, section boundaries), key and tempo detection, and stem separation (vocals, drums, bass, other). It also generates time-synced lyrics through a fallback pipeline — YouTube transcripts first, then cloud ASR, then local Whisper — refined with LLM alignment and a forced aligner into LRC files.
 
-3. **Plans the set.** Transitions between adjacent songs are judged on musical boundaries, not whole-song averages: the key a song *leaves through* against the key the next one *arrives through*, boundary BPM, and an energy arc. Sets follow a fixed five-phase worship arc (讚美 → 感恩 → 敬拜 → 奉獻 → 差遣), and an agentic songset constructor does constrained search over the song pool to propose orderings that fit.
+3. **Plans the set.** Transitions between adjacent songs are judged on musical boundaries, not whole-song averages: the key a song _leaves through_ against the key the next one _arrives through_, boundary BPM, and an energy arc. Sets follow a fixed five-phase worship arc (讚美 → 感恩 → 敬拜 → 奉獻 → 差遣), and an agentic songset constructor does constrained search over the song pool to propose orderings that fit.
 
 4. **Renders and delivers.** A serverless render worker mixes the crossfaded multi-song audio (MP3) and encodes a synchronized lyrics video (MP4) with chapter markers. The web app provides the songset editor, render pipeline, playback controller with second-screen projection (Presentation API / Google Cast), lyric review, semantic search over the catalog, and offline playback via a service worker. There's also a native Android client.
 
