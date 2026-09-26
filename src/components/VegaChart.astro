@@ -12,28 +12,37 @@ const specJson = JSON.stringify(spec);
 
 <script is:inline define:vars={{ id, specJson }}>
   // Wait for vega libraries to load
-  if (typeof vegaEmbed !== "undefined") {
-    const spec = JSON.parse(specJson);
-    // eslint-disable-next-line no-console
-    const logError = console.error;
-    vegaEmbed(`#${id}`, spec, {
-      actions: {
-        export: true,
-        source: false,
-        compiled: false,
-        editor: false,
-      },
-    })
-      .then(function () {
-        // Chart rendered successfully
+  function render() {
+    if (typeof vegaEmbed !== "undefined") {
+      const spec = JSON.parse(specJson);
+      // eslint-disable-next-line no-console
+      const logError = console.error;
+      vegaEmbed(`#${id}`, spec, {
+        actions: {
+          export: true,
+          source: false,
+          compiled: false,
+          editor: false,
+        },
       })
-      .catch(logError);
-  } else {
-    // eslint-disable-next-line no-console
-    console.error(
-      "Vega libraries not loaded. Make sure to include them in the Layout."
-    );
+        .then(function () {
+          // Chart rendered successfully
+        })
+        .catch(logError);
+    } else {
+      // eslint-disable-next-line no-console
+      console.error(
+        "Vega libraries not loaded. Make sure to include them in the Layout."
+      );
+    }
   }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", render);
+  } else {
+    render();
+  }
+  // document-level listeners survive ClientRouter swaps; re-render on arrival
+  document.addEventListener("astro:after-swap", render);
 </script>
 
 <style>

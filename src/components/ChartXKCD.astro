@@ -18,25 +18,36 @@ const config = JSON.stringify({ type, title, xLabel, yLabel, data });
 
 <script is:inline define:vars={{ chartId, config }}>
   // Wait for chart.xkcd library to load
-  if (typeof chartXkcd !== "undefined") {
-    const chartConfig = JSON.parse(config);
-    const svg = document.getElementById(chartId);
+  function render() {
+    if (typeof chartXkcd !== "undefined") {
+      const chartConfig = JSON.parse(config);
+      const svg = document.getElementById(chartId);
+      // clear previous render so re-arrival doesn't double-draw
+      svg.innerHTML = "";
 
-    if (chartConfig.type === "Bar") {
-      new chartXkcd.Bar(svg, chartConfig);
-    } else if (chartConfig.type === "Line") {
-      new chartXkcd.Line(svg, chartConfig);
-    } else if (chartConfig.type === "Pie") {
-      new chartXkcd.Pie(svg, chartConfig);
-    } else if (chartConfig.type === "XY") {
-      new chartXkcd.XY(svg, chartConfig);
+      if (chartConfig.type === "Bar") {
+        new chartXkcd.Bar(svg, chartConfig);
+      } else if (chartConfig.type === "Line") {
+        new chartXkcd.Line(svg, chartConfig);
+      } else if (chartConfig.type === "Pie") {
+        new chartXkcd.Pie(svg, chartConfig);
+      } else if (chartConfig.type === "XY") {
+        new chartXkcd.XY(svg, chartConfig);
+      }
+    } else {
+      // eslint-disable-next-line no-console
+      console.error(
+        "chart.xkcd library not loaded. Make sure to include it in the Layout."
+      );
     }
-  } else {
-    // eslint-disable-next-line no-console
-    console.error(
-      "chart.xkcd library not loaded. Make sure to include it in the Layout."
-    );
   }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", render);
+  } else {
+    render();
+  }
+  // document-level listeners survive ClientRouter swaps; re-render on arrival
+  document.addEventListener("astro:after-swap", render);
 </script>
 
 <style>

@@ -90,8 +90,9 @@ const { id, dataUrl, pageLength = 10 } = Astro.props;
           // Insert table into container
           jQuery("#" + id).html(tableHtml);
 
-          // Initialize DataTable
+          // Initialize DataTable (destroy handles re-init on repeat visits)
           jQuery("#" + id + "-table").DataTable({
+            destroy: true,
             pageLength: pageLength,
             order: [[0, "desc"]],
             responsive: true,
@@ -117,6 +118,8 @@ const { id, dataUrl, pageLength = 10 } = Astro.props;
   } else {
     initDataTable();
   }
+  // document-level listeners survive ClientRouter swaps; re-render on arrival
+  document.addEventListener("astro:after-swap", initDataTable);
 </script>
 
 <style>
