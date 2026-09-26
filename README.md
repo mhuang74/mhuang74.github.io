@@ -12,14 +12,14 @@ Personal blog of Michael S. Huang — <https://michaelhuang.xyz>.
 
 ## Commands
 
-| Command           | Action                                    |
-| :---------------- | :---------------------------------------- |
-| `pnpm install`    | Install dependencies                      |
-| `pnpm dev`        | Start local dev server at `localhost:4321` |
-| `pnpm build`      | Build the production site to `./dist/`    |
-| `pnpm preview`    | Preview the production build locally      |
-| `pnpm lint`       | Run ESLint                                |
-| `pnpm format`     | Format code with Prettier                 |
+| Command        | Action                                     |
+| :------------- | :----------------------------------------- |
+| `pnpm install` | Install dependencies                       |
+| `pnpm dev`     | Start local dev server at `localhost:4321` |
+| `pnpm build`   | Build the production site to `./dist/`     |
+| `pnpm preview` | Preview the production build locally       |
+| `pnpm lint`    | Run ESLint                                 |
+| `pnpm format`  | Format code with Prettier                  |
 
 ## Deployment
 
