@@ -10,6 +10,8 @@ tags:
 description: A macOS utility to lock keyboard/mouse while leaving the screen viewable
 ---
 
+Have you ever been on a video call when your cat walks across your keyboard, sending embarrassing gibberish to your colleagues? Or had your toddler "help" with your presentation by clicking everything in sight? HandsOff is a native macOS utility that solves these problems by blocking all keyboard, trackpad, and mouse input while keeping your screen fully visible.
+
 <!-- more -->
 
 ## The Problem
