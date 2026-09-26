@@ -13,6 +13,26 @@ import { SITE } from "@/config";
     id="main-content"
     class="mx-auto flex max-w-app flex-1 items-center justify-center"
   >
+    <script is:inline>
+      const REDIRECTS = {
+        "/blog/": "/posts/",
+        "/blog/2022_plans/": "/posts/2022-plans/",
+        "/blog/qsv_lessons/": "/posts/qsv-lessons/",
+        "/blog/quick_look_at_charts/": "/posts/quick-look-at-charts/",
+        "/blog/test_table/": "/posts/test-table/",
+        "/blog/google_asset_based_ad_extensions/":
+          "/posts/google-asset-based-ad-extensions/",
+        "/apps/": "/posts/handsoff/",
+        "/apps/handsoff/": "/posts/handsoff/",
+      };
+      let p = location.pathname;
+      if (!p.endsWith("/")) p += "/";
+      let target = REDIRECTS[p];
+      if (!target && p.startsWith("/categories/")) {
+        target = "/tags/" + p.slice("/categories/".length);
+      }
+      if (target) location.replace(new URL(target, location.origin).href);
+    </script>
     <div class="mb-14 flex flex-col items-center justify-center">
       <h1 class="text-9xl font-bold text-accent">404</h1>
       <span aria-hidden="true">¯\_(ツ)_/¯</span>
