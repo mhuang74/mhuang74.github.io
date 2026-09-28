@@ -36,7 +36,7 @@ const isActive = (path: string) => {
   >
     <div
       id="top-nav-wrap"
-      class="relative flex w-full items-baseline justify-between bg-background p-4 sm:items-center sm:py-6"
+      class="relative flex min-h-26 w-full items-baseline justify-between bg-background p-4 sm:min-h-0 sm:items-center sm:py-6"
     >
       <a
         href="/"
@@ -45,7 +45,7 @@ const isActive = (path: string) => {
         <img
           src="/icons/favicon.png"
           alt=""
-          class="h-7 w-7 sm:h-8 sm:w-8"
+          class="h-16 w-16 sm:h-20 sm:w-20"
           aria-hidden="true"
         />
         <span>{SITE.title}</span>
