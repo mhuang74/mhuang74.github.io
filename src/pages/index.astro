@@ -6,6 +6,7 @@ import Footer from "@/components/Footer.astro";
 import LinkButton from "@/components/LinkButton.astro";
 import Card from "@/components/Card.astro";
 import TechStackCard from "@/components/TechStackCard.astro";
+import WorkCard from "@/components/WorkCard.astro";
 import Hr from "@/components/Hr.astro";
 import getSortedPosts from "@/utils/getSortedPosts";
 import IconArrowRight from "@/assets/icons/IconArrowRight.svg";
@@ -16,72 +17,119 @@ const posts = await getCollection("blog");
 const sortedPosts = getSortedPosts(posts);
 const featuredPosts = sortedPosts.filter(({ data }) => data.featured);
 const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
+
+const allWorks = await getCollection("work");
+const featuredWorks = allWorks.filter(({ data }) => data.featured);
 ---
 
 <Layout>
   <Header />
   <main id="main-content" data-layout="index">
+    <section id="hero" class="pt-12 pb-10 sm:pt-16">
+      <p
+        class="font-mono text-xs tracking-widest text-accent uppercase sm:text-sm"
+      >
+        Product Manager · Builder
+      </p>
+      <h1
+        class="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-5xl"
+      >
+        Product Manager who builds technical products end to end.
+      </h1>
+      <p class="mt-4 max-w-2xl text-lg leading-relaxed text-foreground/80">
+        I'm Michael Huang. I ship the products I manage — from audio-analysis
+        pipelines and render infrastructure to Rust CLIs and LLM agent
+        workflows.
+      </p>
+      <LinkButton
+        href="/work"
+        class="mt-6 inline-flex items-center gap-1 rounded-md border border-accent/60 px-4 py-2 font-medium text-accent hover:bg-accent/10"
+      >
+        See my work
+        <IconArrowRight class="h-4 w-4" />
+      </LinkButton>
+    </section>
+
+    {
+      featuredWorks.length > 0 && (
+        <>
+          <Hr />
+          <section id="featured-work" class="pt-12 pb-6">
+            <h2 class="text-2xl font-semibold tracking-wide">Featured Work</h2>
+            <div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredWorks.map(({ id, data }) => (
+                <WorkCard
+                  title={data.title}
+                  role={data.role}
+                  stack={data.stack.slice(0, 4)}
+                  outcome={data.outcomes[0]}
+                  description={data.description}
+                  href={`/work/${id}`}
+                />
+              ))}
+            </div>
+            <div class="mt-6 text-right">
+              <LinkButton
+                href="/work"
+                class="hover:text-accent"
+                ariaLabel="all work"
+                title="All Work"
+              >
+                All Work
+                <IconArrowRight class="inline-block h-4 w-4" />
+              </LinkButton>
+            </div>
+          </section>
+        </>
+      )
+    }
+
     <Hr />
 
-    <section id="tech-stack" class="pt-12 pb-6">
-      <h2 class="text-skin-accent text-3xl font-bold sm:text-4xl">
+    <section id="focus-areas" class="pt-12 pb-6">
+      <h2 class="text-3xl font-bold text-foreground sm:text-4xl">
         Focus Areas
       </h2>
-      <p class="text-skin-base mt-2 mb-8 opacity-80">
-        Problems that I have worked on
+      <p class="mt-2 mb-8 text-foreground/70">
+        Domains I've designed, built, and managed products in.
       </p>
       <div class="grid gap-6 sm:grid-cols-2">
         <TechStackCard
           title="Machine Learning"
-          description="time-series anomaly detection, forecasting, Python, Pandas, Numpy, Scikit Learn, Jupyter Notebook"
-          icons={["☁️", "🔷", "🌐"]}
-          borderColor="cyan"
+          description="time-series anomaly detection · forecasting · Python · Pandas · NumPy · scikit-learn · Jupyter"
         />
         <TechStackCard
-          title="AI Chatbots"
-          description="RAG, n-shot learning, tool calling, code execution, prompt engineering, eval, Azure OpenAI"
-          icons={["🤖", "🧠", "💬"]}
-          borderColor="orange"
+          title="AI Chatbots & Agents"
+          description="RAG · n-shot learning · tool calling · code execution · prompt engineering · eval · Azure OpenAI"
         />
         <TechStackCard
           title="Data Engineering"
-          description="Spark, Avro, ORC, Parquet, Trino, and Scala for data pipelines and ETL"
-          icons={["🐍", "⚡", "📊"]}
-          borderColor="yellow"
+          description="Spark · Avro · ORC · Parquet · Trino · Scala pipelines and ETL"
         />
         <TechStackCard
           title="Data Analytics & Dashboards"
-          description="AWS Quicksight, Athena, EMR, Lambda, S3"
-          icons={["☁️", "🔷", "🌐"]}
-          borderColor="cyan"
+          description="AWS Quicksight · Athena · EMR · Lambda · S3"
         />
         <TechStackCard
           title="Distributed & Reactive Microservices"
-          description="Kafka, Akka, Scala/Java"
-          icons={["☕", "🐘", "🔴"]}
-          borderColor="orange"
+          description="Kafka · Akka · Scala/Java"
         />
         <TechStackCard
           title="Product Management"
-          description="Jobs-to-be-Done, roadmaps, stakeholder management, team leadership"
-          icons={["📋", "🎯", "👥"]}
-          borderColor="yellow"
+          description="Jobs-to-be-Done · roadmaps · stakeholder management · team leadership"
         />
         <TechStackCard
-          title="Marketing & Analytics"
-          description="Google Ads, Bing Ads, conversion attribution, marketing automation"
-          icons={["📈", "🎯", "💼"]}
-          borderColor="cyan"
+          title="Growth & Marketing Analytics"
+          description="Google Ads · conversion attribution · marketing automation"
         />
       </div>
     </section>
 
-    <Hr />
-
     {
       featuredPosts.length > 0 && (
         <>
-          <section id="featured" class="pt-12 pb-6">
+          <Hr />
+          <section id="featured-writing" class="pt-12 pb-6">
             <h2 class="text-2xl font-semibold tracking-wide">Featured</h2>
             <ul>
               {featuredPosts.map(data => (
@@ -89,31 +137,48 @@ const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
               ))}
             </ul>
           </section>
-          {recentPosts.length > 0 && <Hr />}
         </>
       )
     }
 
     {
       recentPosts.length > 0 && (
-        <section id="recent-posts" class="pt-12 pb-6">
-          <h2 class="text-2xl font-semibold tracking-wide">Recent Posts</h2>
-          <ul>
-            {recentPosts.map(
-              (data, index) =>
-                index < SITE.postPerIndex && <Card variant="h3" {...data} />
-            )}
-          </ul>
-        </section>
+        <>
+          <Hr />
+          <section id="recent-posts" class="pt-12 pb-6">
+            <h2 class="text-2xl font-semibold tracking-wide">Recent Writing</h2>
+            <ul>
+              {recentPosts.map(
+                (data, index) =>
+                  index < SITE.postPerIndex && <Card variant="h3" {...data} />
+              )}
+            </ul>
+          </section>
+        </>
       )
     }
 
-    <div class="my-8 text-center">
-      <LinkButton href="/posts/">
-        All Posts
-        <IconArrowRight class="inline-block rtl:-rotate-180" />
+    <Hr />
+
+    <section id="about-teaser" class="pt-12 pb-6">
+      <h2 class="text-2xl font-semibold tracking-wide">About</h2>
+      <p class="mt-3 max-w-2xl leading-relaxed text-foreground/80">
+        I've spent my career where product decisions meet hard technical
+        constraints — data platforms, ML systems, and most recently LLM tooling.
+        I still write code and ship infrastructure for the products I manage,
+        because the best product judgment comes from knowing what the work
+        actually costs.
+      </p>
+      <LinkButton
+        href="/about"
+        class="mt-4 inline-flex items-center gap-1 font-medium text-accent hover:underline"
+        ariaLabel="read more about me"
+        title="Read more about me"
+      >
+        Read more about me
+        <IconArrowRight class="h-4 w-4" />
       </LinkButton>
-    </div>
+    </section>
   </main>
   <Footer />
 </Layout>

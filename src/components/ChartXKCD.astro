@@ -17,38 +17,39 @@ const config = JSON.stringify({ type, title, xLabel, yLabel, data });
 </div>
 
 <script is:inline define:vars={{ chartId, config }}>
-  // Wait for chart.xkcd library to load
-  function render() {
-    if (typeof chartXkcd !== "undefined") {
-      const chartConfig = JSON.parse(config);
-      const svg = document.getElementById(chartId);
-      if (!svg) return;
-      // clear previous render so re-arrival doesn't double-draw
-      svg.innerHTML = "";
+  // Load chart.xkcd on demand (not from the global layout); see
+  // loadClassicScript in Layout.astro for why source is fetched and
+  // evaluated non-strictly instead of injected as a module.
+  const libPromise = window
+    .loadClassicScript(
+      "https://cdn.jsdelivr.net/npm/chart.xkcd@1.1.13/dist/chart.xkcd.min.js"
+    )
+    .catch(err => console.error("Failed to load chart.xkcd:", err));
 
-      if (chartConfig.type === "Bar") {
-        new chartXkcd.Bar(svg, chartConfig);
-      } else if (chartConfig.type === "Line") {
-        new chartXkcd.Line(svg, chartConfig);
-      } else if (chartConfig.type === "Pie") {
-        new chartXkcd.Pie(svg, chartConfig);
-      } else if (chartConfig.type === "XY") {
-        new chartXkcd.XY(svg, chartConfig);
-      }
-    } else {
-      // eslint-disable-next-line no-console
-      console.error(
-        "chart.xkcd library not loaded. Make sure to include it in the Layout."
-      );
+  function render() {
+    if (typeof chartXkcd === "undefined") return;
+    const chartConfig = JSON.parse(config);
+    const svg = document.getElementById(chartId);
+    if (!svg) return;
+    // clear previous render so re-arrival doesn't double-draw
+    svg.innerHTML = "";
+
+    if (chartConfig.type === "Bar") {
+      new chartXkcd.Bar(svg, chartConfig);
+    } else if (chartConfig.type === "Line") {
+      new chartXkcd.Line(svg, chartConfig);
+    } else if (chartConfig.type === "Pie") {
+      new chartXkcd.Pie(svg, chartConfig);
+    } else if (chartConfig.type === "XY") {
+      new chartXkcd.XY(svg, chartConfig);
     }
   }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", render);
-  } else {
-    render();
-  }
+
+  libPromise.then(() => render());
   // document-level listeners survive ClientRouter swaps; re-render on arrival
-  document.addEventListener("astro:after-swap", render);
+  document.addEventListener("astro:after-swap", () =>
+    libPromise.then(() => render())
+  );
 </script>
 
 <style>

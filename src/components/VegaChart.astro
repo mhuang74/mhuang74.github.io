@@ -11,39 +11,44 @@ const specJson = JSON.stringify(spec);
 <div id={id} class="vega-chart-container my-8"></div>
 
 <script is:inline define:vars={{ id, specJson }}>
-  // Wait for vega libraries to load
+  // Load Vega on demand (not from the global layout) so pages without charts
+  // pay nothing. loadClassicScript (Layout.astro) fetches pinned UMD source
+  // and evaluates it non-strictly; sequential awaits order vega → vega-lite
+  // → vega-embed. esm.run is avoided: bare package URLs hop majors.
+  const VEGA_LIBS = [
+    "https://cdn.jsdelivr.net/npm/vega@5.21.0",
+    "https://cdn.jsdelivr.net/npm/vega-lite@5.2.0",
+    "https://cdn.jsdelivr.net/npm/vega-embed@6.20.2",
+  ];
+
+  const libsPromise = VEGA_LIBS.reduce(
+    (chain, src) => chain.then(() => window.loadClassicScript(src)),
+    Promise.resolve()
+  ).catch(err => console.error("Failed to load Vega libraries:", err));
+
   function render() {
+    if (typeof vegaEmbed === "undefined") return;
     if (!document.getElementById(id)) return;
-    if (typeof vegaEmbed !== "undefined") {
-      const spec = JSON.parse(specJson);
-      // eslint-disable-next-line no-console
-      const logError = console.error;
-      vegaEmbed(`#${id}`, spec, {
-        actions: {
-          export: true,
-          source: false,
-          compiled: false,
-          editor: false,
-        },
+    const spec = JSON.parse(specJson);
+    // eslint-disable-next-line no-console
+    const logError = console.error;
+    vegaEmbed(`#${id}`, spec, {
+      actions: {
+        export: true,
+        source: false,
+        compiled: false,
+        editor: false,
+      },
+    })
+      .then(function () {
+        // Chart rendered successfully
       })
-        .then(function () {
-          // Chart rendered successfully
-        })
-        .catch(logError);
-    } else {
-      // eslint-disable-next-line no-console
-      console.error(
-        "Vega libraries not loaded. Make sure to include them in the Layout."
-      );
-    }
+      .catch(logError);
   }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", render);
-  } else {
-    render();
-  }
+
+  libsPromise.then(render);
   // document-level listeners survive ClientRouter swaps; re-render on arrival
-  document.addEventListener("astro:after-swap", render);
+  document.addEventListener("astro:after-swap", () => libsPromise.then(render));
 </script>
 
 <style>

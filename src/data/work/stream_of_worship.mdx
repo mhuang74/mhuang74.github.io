@@ -1,0 +1,71 @@
+---
+title: "Stream of Worship"
+role: "Product Owner & Engineer"
+team: Solo
+stack:
+  - Next.js 16
+  - FastAPI
+  - AWS Lambda/SQS
+  - Neon Postgres + pgvector
+  - Cloudflare R2
+  - PyTorch / Demucs
+  - Jetpack Compose (Android)
+outcomes:
+  - "[METRIC NEEDED: catalog size — songs analyzed / transitions scored in production]"
+featured: false
+pubDatetime: 2026-09-28
+description: A system that analyzes Chinese worship songs and renders seamless multi-song audio and lyrics-video sets — from catalog scraping to offline-capable playback.
+---
+
+import ShowcaseSetExplorer from "@/components/ShowcaseSetExplorer.astro";
+
+## Problem
+
+Chinese worship teams have no tooling for the space _between_ songs. English-language worship has mature set-planning software; Chinese worship music （中文敬拜詩歌） lives in scattered catalogs with fragmented audio sources, no transition planning, and no offline-ready playback. Every Sunday, someone fumbles with a laptop between songs and the room loses the moment.
+
+Goal: go from "here is my song list" to a seamless, offline-capable worship set — one continuous audio file plus a lyrics video with chapter markers — without manual audio engineering.
+
+## Constraints
+
+Three hard realities shaped everything:
+
+1. **Venue Wi-Fi is the least reliable thing in the room.** A worship set that stalls mid-service is worse than no system at all — offline playback was a launch requirement, not a nice-to-have.
+2. **Catalog data is messy.** Song titles mix Traditional characters and pinyin, tempo detection on worship arrangements is ambiguous (octave errors), and synced lyrics don't exist for most of the catalog.
+3. **Budget.** This is a solo side project — every GPU job and every render had to fit free-tier quotas and serverless cost envelopes.
+
+## Decisions
+
+- **Monorepo, hard boundaries (9 components).** Only the Dockerized Analysis Service may hold ML dependencies; the admin CLI and Android client are architecturally forbidden from touching Postgres, R2, or SQS directly (enforced by convention, documented in AGENTS.md). A solo multi-year project survives on boring, explicit interfaces.
+- **Transition quality is a boundary problem, not a song-level problem.** Compatibility is judged on the key a song _leaves through_ versus the key the next one _arrives through_, plus boundary BPM — whole-song averages produce jarring seams.
+- **Worship practice encoded as constraints.** Sets follow a fixed five-phase arc （讚美 → 感恩 → 敬拜 → 奉獻 → 差遣）; a beam-search songset constructor does constrained search over the catalog with a scored objective (theme, tempo flow, harmonic mix, diversity) and tunable hard-constraint relaxation.
+- **Domain priors beat generic models.** Tempo estimation adds worship-music BPM priors plus a lognormal prior derived from lyrics characters-per-second to resolve octave ambiguity that fools off-the-shelf estimators.
+- **A real ML pipeline is mostly plumbing.** The lyrics pipeline chains YouTube transcripts (with a circuit breaker) → cloud ASR → local Whisper → LLM alignment → a forced aligner; per-API quota waiters park jobs until free tiers reset; per-job-class semaphores keep batch backfill from starving live traffic.
+- **Serverless render pipeline.** Crossfaded multi-song MP3s and ~29 000-frame lyric MP4s render in an AWS Lambda container triggered via SQS, with SSE progress streamed to the browser — no long-running Vercel functions.
+- **Offline-first playback.** The web app caches rendered artifacts in a service worker (byte-range serving for large videos), and share links carry token-scoped _frozen_ copies so a shared set never changes under the recipient (ADR 0009).
+
+## Showcase
+
+This is real output from the songset constructor's eval harness (`eval/run1_standard`, 2026-07-26): a beam search across a 438-song pool — 191,406 scored pairwise transitions — producing five ranked three-song sets. Pick a proposal to inspect its songs, transition notes, and objective scores.
+
+<div class="not-prose rounded bg-muted/40 px-3 py-1 font-mono text-[11px] text-foreground/60">
+  Audio files are not committed to the repo — waveforms are illustrative. Song,
+  key, BPM, crossfade, and score data are verbatim constructor output.
+</div>
+
+<ShowcaseSetExplorer />
+
+The two top-ranked sets disagree interestingly: proposal 2 wins on tempo flow until its closing song (a 4-second crossfade with a +1 semitone shift that the algorithm accepted), while proposal 1 is harmonically cleaner end to end. That tradeoff surface — not a single "best" answer — is the product.
+
+## Artifacts
+
+- Web app (login-gated): `app.streamofworship.com`
+- Marketing site: [streamofworship.com](https://streamofworship.com)
+- Repo: [mhuang74/stream_of_worship](https://github.com/mhuang74/stream_of_worship) · 11 ADRs · ~500 versioned specs
+- Blog series: [Stream of Worship — a series](/posts/sow-intro) walks the pipeline end to end; deep-dives on the transition engine, lyrics pipeline, and offline playback are forthcoming.
+
+## Outcome
+
+- **[METRIC NEEDED: catalog size — number of songs analyzed]**
+- **[METRIC NEEDED: render throughput — jobs completed / typical render time]**
+- **[METRIC NEEDED: adoption — teams or users actively using it, if any]**
+- Process: ~500 spec docs with v1–v5 iteration chains, 11 ADRs, CI running real Postgres with pgvector, 150+ Vitest files on the web app alone.
