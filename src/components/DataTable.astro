@@ -126,7 +126,10 @@ const { id, dataUrl, pageLength = 10 } = Astro.props;
         "https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"
       )
     )
-    .catch(err => console.error("Failed to load DataTables libraries:", err));
+    .catch(
+      // eslint-disable-next-line no-console -- intentional client-side error logging
+      err => console.error("Failed to load DataTables libraries:", err)
+    );
 
   if (!document.querySelector(`link[href="${DATATABLES_CSS}"]`)) {
     const link = document.createElement("link");

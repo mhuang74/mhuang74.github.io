@@ -24,7 +24,10 @@ const specJson = JSON.stringify(spec);
   const libsPromise = VEGA_LIBS.reduce(
     (chain, src) => chain.then(() => window.loadClassicScript(src)),
     Promise.resolve()
-  ).catch(err => console.error("Failed to load Vega libraries:", err));
+  ).catch(
+    // eslint-disable-next-line no-console -- intentional client-side error logging
+    err => console.error("Failed to load Vega libraries:", err)
+  );
 
   function render() {
     if (typeof vegaEmbed === "undefined") return;

@@ -24,7 +24,10 @@ const config = JSON.stringify({ type, title, xLabel, yLabel, data });
     .loadClassicScript(
       "https://cdn.jsdelivr.net/npm/chart.xkcd@1.1.13/dist/chart.xkcd.min.js"
     )
-    .catch(err => console.error("Failed to load chart.xkcd:", err));
+    .catch(
+      // eslint-disable-next-line no-console -- intentional client-side error logging
+      err => console.error("Failed to load chart.xkcd:", err)
+    );
 
   function render() {
     if (typeof chartXkcd === "undefined") return;
