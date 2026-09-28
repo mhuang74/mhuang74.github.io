@@ -164,42 +164,29 @@ const structuredData = {
 
     <ClientRouter />
 
-    <!-- Vega and Vega-Lite for charts -->
-    <script
-      is:inline
-      src="https://cdn.jsdelivr.net/npm/vega@5.21.0"
-      crossorigin="anonymous"></script>
-    <script
-      is:inline
-      src="https://cdn.jsdelivr.net/npm/vega-lite@5.2.0"
-      crossorigin="anonymous"></script>
-    <script
-      is:inline
-      src="https://cdn.jsdelivr.net/npm/vega-embed@6.20.2"
-      crossorigin="anonymous"></script>
-
-    <!-- Chart.xkcd for hand-drawn style charts -->
-    <script
-      is:inline
-      src="https://cdn.jsdelivr.net/npm/chart.xkcd@1.1.13/dist/chart.xkcd.min.js"
-      crossorigin="anonymous"></script>
-
-    <!-- DataTables for interactive tables -->
-    <link
-      rel="stylesheet"
-      href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css"
-      crossorigin="anonymous"
-    />
-    <script
-      is:inline
-      src="https://code.jquery.com/jquery-3.7.0.min.js"
-      crossorigin="anonymous"></script>
-    <script
-      is:inline
-      src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"
-      crossorigin="anonymous"></script>
-
     <script is:inline src="/toggle-theme.js"></script>
+
+    <!-- Shared classic-script loader for per-component CDN libs.
+      UMD bundles fail when injected as <script type="module"> (strict-mode
+      `this` is undefined inside their factories), so fetch pinned source and
+      evaluate it non-strictly with `window` as `this`. Dedupes in-flight and
+      completed loads per URL; sequential awaits order dependent scripts. -->
+    <script is:inline>
+      window.__classicScripts = window.__classicScripts || {};
+      window.loadClassicScript = function (src) {
+        window.__classicScripts[src] =
+          window.__classicScripts[src] ||
+          fetch(src)
+            .then(function (r) {
+              if (!r.ok) throw new Error(src + ": HTTP " + r.status);
+              return r.text();
+            })
+            .then(function (code) {
+              new Function(code).call(new Function("return this")());
+            });
+        return window.__classicScripts[src];
+      };
+    </script>
   </head>
   <body>
     <slot />

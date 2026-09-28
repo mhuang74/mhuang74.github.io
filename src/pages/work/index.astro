@@ -1,0 +1,45 @@
+---
+import { getCollection } from "astro:content";
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import Breadcrumb from "@/components/Breadcrumb.astro";
+import WorkCard from "@/components/WorkCard.astro";
+import { SITE } from "@/config";
+
+const works = await getCollection("work");
+const sorted = works.sort(
+  (a, b) => Number(b.data.featured) - Number(a.data.featured)
+);
+---
+
+<Layout title={`Work | ${SITE.title}`}>
+  <Header />
+  <Breadcrumb />
+  <main id="main-content" class="mx-auto w-full max-w-app px-4 pb-12">
+    <section id="work" class="pt-4 pb-6">
+      <h1 class="text-2xl font-semibold tracking-wider sm:text-3xl">
+        Selected Work
+      </h1>
+      <p class="mt-2 mb-8 text-foreground/70">
+        Case studies of products I designed and built — problem, constraints,
+        decisions, and what shipped.
+      </p>
+      <div class="grid gap-6 sm:grid-cols-2">
+        {
+          sorted.map(({ id, data }) => (
+            <WorkCard
+              title={data.title}
+              role={data.role}
+              stack={data.stack}
+              outcome={data.outcomes[0]}
+              description={data.description}
+              href={`/work/${id}`}
+            />
+          ))
+        }
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>

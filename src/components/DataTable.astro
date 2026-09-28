@@ -45,7 +45,6 @@ const { id, dataUrl, pageLength = 10 } = Astro.props;
     return result;
   }
 
-  // Wait for jQuery and DataTables to load
   function initDataTable() {
     if (!document.getElementById(id)) return;
     if (typeof jQuery !== "undefined" && jQuery.fn.DataTable) {
@@ -108,19 +107,40 @@ const { id, dataUrl, pageLength = 10 } = Astro.props;
           );
         },
       });
-    } else {
-      setTimeout(initDataTable, 100);
     }
   }
 
-  // Initialize when DOM is ready
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initDataTable);
-  } else {
-    initDataTable();
+  // Load jQuery + DataTables on demand instead of globally from the layout.
+  // loadClassicScript (Layout.astro) fetches pinned source and evaluates it
+  // non-strictly; sequential awaits order jQuery → DataTables. CSS loads
+  // alongside.
+  const DATATABLES_CSS =
+    "https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css";
+
+  const libsPromise = window
+    .loadClassicScript(
+      "https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"
+    )
+    .then(() =>
+      window.loadClassicScript(
+        "https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"
+      )
+    )
+    .catch(err => console.error("Failed to load DataTables libraries:", err));
+
+  if (!document.querySelector(`link[href="${DATATABLES_CSS}"]`)) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = DATATABLES_CSS;
+    link.crossOrigin = "anonymous";
+    document.head.appendChild(link);
   }
+
+  libsPromise.then(() => initDataTable());
   // document-level listeners survive ClientRouter swaps; re-render on arrival
-  document.addEventListener("astro:after-swap", initDataTable);
+  document.addEventListener("astro:after-swap", () =>
+    libsPromise.then(() => initDataTable())
+  );
 </script>
 
 <style>
