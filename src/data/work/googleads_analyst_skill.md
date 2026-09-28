@@ -47,5 +47,5 @@ Goal: turn Claude into a Google Ads performance analyst that follows a real inve
 ## Outcome
 
 - Two end-to-end worked sessions in `references/workflow_examples.md` (standard + Grants accounts), plus before/after comparisons in the internal enhancement changelog
-- **[METRIC NEEDED: real-world usage — accounts analyzed / reports generated]**
+- In monthly use since 2025: generates the monthly performance report for 3 Google Ads accounts
 - **[METRIC NEEDED: hallucination catch rate of the validate gate in practice]**

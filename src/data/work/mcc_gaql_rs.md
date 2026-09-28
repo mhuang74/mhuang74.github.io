@@ -46,5 +46,5 @@ Goal: a fast terminal-first stack for analysts — query many accounts at once, 
 
 - NL→GAQL generation in ~3-4 seconds end-to-end with high accuracy (`docs/RAG_OVERVIEW.md`)
 - ~150 unit tests across crates, including RAG retrieval-quality and negative-case integration tests
-- **[METRIC NEEDED: real-world usage — accounts managed / download counts / queries run]**
+- Used in practice to test against 3 Google Ads accounts and generate monthly performance reports for the past 5 months
 - **[METRIC NEEDED: RAG accuracy from the cookbook gen-test harness]**
