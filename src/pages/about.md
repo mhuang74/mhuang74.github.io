@@ -3,7 +3,7 @@ layout: ../layouts/AboutLayout.astro
 title: "About Me"
 ---
 
-Hi — I am a problem solver that work with customers and teams to turn solutions into products.
+Hi — I am a problem solver who works with customers and teams to turn solutions into products.
 
 ## My story
 

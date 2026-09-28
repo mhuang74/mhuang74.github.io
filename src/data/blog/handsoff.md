@@ -120,5 +120,7 @@ The project is open source and available on [GitHub](https://github.com/mhuang74
 ---
 
 **Requirements**: macOS 10.11 (El Capitan) or later
+
 **Tested on**: MBA M2 with macOS 15.7 (Sequoia)
+
 **License**: See LICENSE file on GitHub

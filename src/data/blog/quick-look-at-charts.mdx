@@ -23,9 +23,9 @@ In this post, I plot open data from NYC 311 call records using:
 
 - [vega-lite](https://vega.github.io/vega-lite/) - a high-level grammar of interactive graphics.
 
-Raw data is available [here](/data.csv), or viewed interactively via my test post on [DataTables](/posts/test-table).
+Raw data is available [here](/data.csv), or view it interactively via my test post on [DataTables](/posts/test-table).
 
-Here's a peek at raw csv data.
+Here's a peek at raw CSV data.
 
 ```
 Unique Key,Created Date,Closed Date,Agency,Agency Name,Complaint Type,Descriptor,Location Type,Incident Zip,Incident Address,Street Name,Cross Street 1,Cross Street 2,Intersection Street 1,Intersection Street 2,Address Type,City,Landmark,Facility Type,Status,Due Date,Resolution Description,Resolution Action Updated Date,Community Board,BBL,Borough,X Coordinate (State Plane),Y Coordinate (State Plane),Open Data Channel Type,Park Facility Name,Park Borough,Vehicle Type,Taxi Company Borough,Taxi Pick Up Location,Bridge Highway Name,Bridge Highway Direction,Road Ramp,Bridge Highway Segment,Latitude,Longitude,Location
@@ -34,9 +34,9 @@ Unique Key,Created Date,Closed Date,Agency,Agency Name,Complaint Type,Descriptor
 
 ## [chart.xkcd](https://timqian.com/chart.xkcd/)
 
-[chart.xkcd](https://timqian.com/chart.xkcd/) uses JSON to define axis and dataset, but does not come with any data loading APIs.
+[chart.xkcd](https://timqian.com/chart.xkcd/) uses JSON to define axes and datasets, but does not come with any data loading APIs.
 
-Since I don't want to write data wrangling code via javscript, I manually enter pre-aggregated complaint counts into JSON definition below.
+Since I don't want to write data wrangling code via JavaScript, I manually enter pre-aggregated complaint counts into the JSON definition below.
 
 **Top 10 NYC 311 Complaint Types**
 
@@ -109,4 +109,4 @@ vega-lite offers vastly more flexibility in terms of data aggregation, sorting, 
 
 ### Summary
 
-I think both libraries have their usecases. I would use chart.xkcd to illustrate a point that only requires a few synthetic data points. Meanwhile, vega-lite's data aggregation, sorting, and filtering options makes it much more versatile for use with real datasets.
+I think both libraries have their use cases. I would use chart.xkcd to illustrate a point that only requires a few synthetic data points. Meanwhile, vega-lite's data aggregation, sorting, and filtering options make it much more versatile for use with real datasets.

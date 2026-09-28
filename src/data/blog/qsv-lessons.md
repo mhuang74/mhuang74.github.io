@@ -10,7 +10,7 @@ tags:
 description: Learning Rust with my first real project
 ---
 
-I kinda had to learn Rust, because I sucked at C/C++ so badly. Once beyond the fun phase of copy-and-paste Adruino programming, my fascination with microcontrollers inevitably threw me back into the C/C++ nightmare of my college years. I could do Java/Scala/Python, but still clueless about how to properly manipulate strings in C/C++. So Rust was kinda my lifeboat.
+I kinda had to learn Rust, because I sucked at C/C++ so badly. Once beyond the fun phase of copy-and-paste Arduino programming, my fascination with microcontrollers inevitably threw me back into the C/C++ nightmare of my college years. I could do Java/Scala/Python, but still clueless about how to properly manipulate strings in C/C++. So Rust was kinda my lifeboat.
 
 And in order to learn Rust, I had to do a real project. After a few false starts, I stumbled upon a neat little project called [xsv](https://github.com/BurntSushi/xsv) that can JOIN csv files with blazing speed. Kinda like what we use Spark for at work, except condensed into one tiny CLI tool. Eventually I found the one active fork called [qsv](https://github.com/jqnatividad/qsv) maintained by friendly Joel and decided to jump in.
 
@@ -18,25 +18,25 @@ Here are a few takeaways from my very first real Rust project.
 
 **No need for Rust Debugger**
 
-I sunk in a few days trying to get LLDB and GDB debugging flow working. The payoff was too small. I am sure I would need such powerful tools someday, but for my simple and occasional needs, `dbg!()` is enough.
+I sunk a few days into trying to get the LLDB and GDB debugging flow working. The payoff was too small. I am sure I would need such powerful tools someday, but for my simple and occasional needs, `dbg!()` is enough.
 
-\_rustfmt is a Friend, and clippy is a Mentor\_\_
+**rustfmt is a Friend, and clippy is a Mentor**
 
-I received some complaints for my first few PR's because I wasn't used to running `cargo fmt`. Same with `cargo clippy`. Then I found that I could be sloppy with my whitespaces and indentations as long as I run rustfmt later. And clippy made me feel like having a personal mentor standing over my shoulders to check my newbie Rust code.
+I received some complaints on my first few PRs because I wasn't used to running `cargo fmt`. Same with `cargo clippy`. Then I found that I could be sloppy with my whitespace and indentation as long as I run rustfmt later. And clippy made me feel like having a personal mentor standing over my shoulders to check my newbie Rust code.
 
 **Cargo Check on Save**
 
-I had disabled cargo-check-on-save for a while because my laptop would almost freeze with all the work it's doing. Then I read the first section of [Zero to Production in Rust](https://algoluca.gumroad.com/l/zero2prod) and decided to give it another try in order to decrease perceived compilation time. It made a night and day difference to my productivity! Compilation errors appear immediately after making changes, all visually annotated right with the source in vscode.
+I had disabled cargo-check-on-save for a while because my laptop would almost freeze with all the work it was doing. Then I read the first section of [Zero to Production in Rust](https://algoluca.gumroad.com/l/zero2prod) and decided to give it another try in order to decrease perceived compilation time. It made a night-and-day difference to my productivity! Compilation errors appear immediately after making changes, all visually annotated right with the source in VS Code.
 
 **It's Okay to Upgrade the Compiler**
 
-I don't ever remember upgrading the compiler so frequently in Java or Python land. Just a few days after new Rust release, qsv would actually pick up new Rust language features, and I would be forced to upgrade my Rust version in order to compile. With Rustup, it just worked.
+I don't ever remember upgrading the compiler so frequently in Java or Python land. Just a few days after a new Rust release, qsv would actually pick up new Rust language features, and I would be forced to upgrade my Rust version in order to compile. With Rustup, it just worked.
 
 **Rust likes Memory**
 
-It's easy to go over default stack size of 2MB with large arrays `[u8]` instead of vectors `Vec<u8>`.
+It's easy to go over the default stack size of 2MB with large arrays `[u8]` instead of vectors `Vec<u8>`.
 
-And because Rust works so well, sometimes we forget and try to load really large files that exhausts hardware RAM. It's amazing that there's no segmentation fault!
+And because Rust works so well, sometimes we forget and try to load really large files that exhaust hardware RAM. It's amazing that there's no segmentation fault!
 
 **Serde is Slow, and so is Clone()**
 
@@ -46,4 +46,4 @@ Sprinkling `clone()` around is probably the easiest way to silence borrow-checke
 
 **Rayon and Streaming Data**
 
-It would seem that Rayon parallel processing wouldn't work with streaming data because data would be arriving one at a time. I learned from [More Stina Blog!](https://morestina.net/blog/1432/parallel-stream-processing-with-rayon) that streaming data can first be put into batches, then Rayon parallel iterator can plow through them as usual.
+It would seem that Rayon parallel processing wouldn't work with streaming data because data would be arriving one at a time. I learned from [More Stina Blog!](https://morestina.net/blog/1432/parallel-stream-processing-with-rayon) that streaming data can first be put into batches, then Rayon parallel iterators can plow through them as usual.
