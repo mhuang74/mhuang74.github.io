@@ -75,7 +75,9 @@ const proposals = run.proposals.map(p => {
         peaks: makePeaks(it.title + it.key, 48),
       };
     }),
-    phasePath: p.items.map(it => PHASES[String(it.phase)] ?? `Phase ${it.phase}`),
+    phasePath: p.items.map(
+      it => PHASES[String(it.phase)] ?? `Phase ${it.phase}`
+    ),
   };
 });
 
@@ -144,8 +146,9 @@ const SYNTHETIC_WAVE_NOTE =
             proposals.map(p => (
               <span>
                 <br />
-                {p.rank}) <strong>{p.items.map(i => i.title).join(" → ")}</strong>{" "}
-                (score {p.score.total})
+                {p.rank}){" "}
+                <strong>{p.items.map(i => i.title).join(" → ")}</strong> (score{" "}
+                {p.score.total})
               </span>
             ))
           }
@@ -156,7 +159,7 @@ const SYNTHETIC_WAVE_NOTE =
     </noscript>
   </div>
 
-  <script is:inline data-astro-rerun define:vars={{ }}>
+  <script is:inline data-astro-rerun define:vars={{}}>
     (function () {
       const root = document.getElementById("sow-showcase");
       if (!root) return;
@@ -198,16 +201,52 @@ const SYNTHETIC_WAVE_NOTE =
         let rects = "";
         for (let i = 0; i < peaks.length; i++) {
           const amp = peaks[i] * mid;
-          rects += '<rect x="' + (i * barW).toFixed(1) + '" y="' + (mid - amp).toFixed(1) + '" width="' + (barW * 0.62).toFixed(1) + '" height="' + (amp * 2).toFixed(1) + '" rx="0.5" fill="currentColor" opacity="0.55"/>';
+          rects +=
+            '<rect x="' +
+            (i * barW).toFixed(1) +
+            '" y="' +
+            (mid - amp).toFixed(1) +
+            '" width="' +
+            (barW * 0.62).toFixed(1) +
+            '" height="' +
+            (amp * 2).toFixed(1) +
+            '" rx="0.5" fill="currentColor" opacity="0.55"/>';
         }
-        return '<svg viewBox="0 0 ' + w + " " + h + '" class="h-11 w-full" aria-hidden="true">' + rects + "</svg>";
+        return (
+          '<svg viewBox="0 0 ' +
+          w +
+          " " +
+          h +
+          '" class="h-11 w-full" aria-hidden="true">' +
+          rects +
+          "</svg>"
+        );
       }
 
       function transitionNote(prev, next) {
         if (next.crossfade) {
-          return next.crossfade + "s crossfade · shifts +" + next.shift + " semitone into " + next.key;
+          return (
+            next.crossfade +
+            "s crossfade · shifts +" +
+            next.shift +
+            " semitone into " +
+            next.key
+          );
         }
-        return prev.key + " " + prev.mode + " · " + prev.bpm + " → " + next.key + " " + next.mode + " · " + next.bpm + " BPM";
+        return (
+          prev.key +
+          " " +
+          prev.mode +
+          " · " +
+          prev.bpm +
+          " → " +
+          next.key +
+          " " +
+          next.mode +
+          " · " +
+          next.bpm +
+          " BPM"
+        );
       }
 
       function renderProposal(idx) {
@@ -220,15 +259,29 @@ const SYNTHETIC_WAVE_NOTE =
           row.className =
             "grid grid-cols-[7rem_1fr] items-center gap-3 sm:grid-cols-[10rem_1fr_12rem]";
           row.innerHTML =
-            '<div>' +
-            '<p class="text-sm font-medium leading-tight">' + it.title + "</p>" +
-            '<p class="font-mono text-[10px] text-foreground/60">Phase ' + it.phase + " · " + it.key + " " + it.mode + "</p>" +
+            "<div>" +
+            '<p class="text-sm font-medium leading-tight">' +
+            it.title +
+            "</p>" +
+            '<p class="font-mono text-[10px] text-foreground/60">Phase ' +
+            it.phase +
+            " · " +
+            it.key +
+            " " +
+            it.mode +
+            "</p>" +
             "</div>" +
-            '<div class="text-accent">' + laneSvg(it.peaks) + "</div>" +
+            '<div class="text-accent">' +
+            laneSvg(it.peaks) +
+            "</div>" +
             '<div class="col-span-2 font-mono text-[11px] leading-snug text-foreground/70 sm:col-span-1">' +
-            it.bpm + " BPM · key conf. " + (it.confidence * 100).toFixed(0) + "%" +
+            it.bpm +
+            " BPM · key conf. " +
+            (it.confidence * 100).toFixed(0) +
+            "%" +
             (i > 0
-              ? '<br><span class="text-accent">→ in:</span> ' + transitionNote(p.items[i - 1], it)
+              ? '<br><span class="text-accent">→ in:</span> ' +
+                transitionNote(p.items[i - 1], it)
               : "") +
             "</div>";
           lanes.appendChild(row);
@@ -242,8 +295,12 @@ const SYNTHETIC_WAVE_NOTE =
           const cell = document.createElement("div");
           cell.className = "rounded-md bg-muted/50 px-3 py-2";
           cell.innerHTML =
-            '<p class="font-mono text-[10px] tracking-widest text-foreground/60 uppercase">' + label + "</p>" +
-            '<p class="font-mono text-sm font-medium">' + Number(val).toFixed(3) + "</p>";
+            '<p class="font-mono text-[10px] tracking-widest text-foreground/60 uppercase">' +
+            label +
+            "</p>" +
+            '<p class="font-mono text-sm font-medium">' +
+            Number(val).toFixed(3) +
+            "</p>";
           scores.appendChild(cell);
         }
 
