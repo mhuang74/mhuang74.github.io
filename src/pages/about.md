@@ -7,7 +7,11 @@ Hi — I'm Michael Huang, a product manager who writes code.
 
 ## My story
 
-_[This section draws on my LinkedIn history and will be expanded with the full career arc.]_ My career has sat at the intersection of data systems and product decisions: building data infrastructure, ML tooling, and analytics products, and managing the products they power. I've worked across machine learning, data engineering, distributed systems, and growth/marketing technology — always close enough to the implementation to know which ideas are cheap and which are expensive.
+I've spent 20+ years in software, the last three as a product manager after a dozen in engineering leadership — a path that shaped how I work: I've been close enough to the implementation to know which ideas are cheap and which are expensive.
+
+At Marin Software I grew from technical lead to Director then Senior Director of Engineering (2012–2022) — building search features across five ad platforms, leading a 30-person Shanghai team, and delivering a new-generation OLAP pipeline that made intraday cost and revenue reporting 12× faster. In 2022 I moved to the product side, and as Technical Product Manager shipped an AI chatbot with three specialized sub-agents (help, reporting, campaign management) on Azure OpenAI, a Scripts platform running 700+ marketing automations, and ML-based anomaly detection deployed across hundreds of campaigns.
+
+Before Marin: underwriting automation at Trilogy, trade-processing tooling at MetLife, anti-money-laundering systems at Morgan Stanley, and my own offshore engineering consultancy in Shanghai. Along the way: an M.Eng. from Cornell, a B.A. in physics from Berkeley, and a lasting habit of building the thing, not just specifying it.
 
 ## What I'm doing now
 
