@@ -3,7 +3,7 @@ layout: ../layouts/AboutLayout.astro
 title: "About Me"
 ---
 
-Hi — I'm Michael Huang, a product manager who writes code.
+Hi — I am a problem solver that work with customers and teams to turn solutions into products.
 
 ## My story
 
