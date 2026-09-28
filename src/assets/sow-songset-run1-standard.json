@@ -42,10 +42,7 @@
           "song_id": "pi_shang_zan_mei_yi_9621c199",
           "title": "披上讚美衣",
           "phase": 1,
-          "themes": [
-            "赞美",
-            "敬拜"
-          ],
+          "themes": ["赞美", "敬拜"],
           "bpm": 95.7,
           "key": "A",
           "mode": "major",
@@ -62,10 +59,7 @@
           "song_id": "xi_le_quan_yuan_88cd7a75",
           "title": "喜樂泉源",
           "phase": 3,
-          "themes": [
-            "敬拜",
-            "赞美"
-          ],
+          "themes": ["敬拜", "赞美"],
           "bpm": 95.7,
           "key": "G",
           "mode": "major",
@@ -82,10 +76,7 @@
           "song_id": "zhu_a__wo_yao_gen_sui_mi_83163301",
           "title": "主啊，我要跟隨祢",
           "phase": 5,
-          "themes": [
-            "跟随",
-            "奉献"
-          ],
+          "themes": ["跟随", "奉献"],
           "bpm": 71.8,
           "key": "F",
           "mode": "major",
@@ -119,10 +110,7 @@
           "song_id": "mei_hao_de_chuang_zao_3d42d76e",
           "title": "美好的創造",
           "phase": 1,
-          "themes": [
-            "赞美",
-            "敬拜"
-          ],
+          "themes": ["赞美", "敬拜"],
           "bpm": 103.4,
           "key": "C",
           "mode": "major",
@@ -139,10 +127,7 @@
           "song_id": "wo_men_ai_dai_de_wang_ccd678e3",
           "title": "我們愛戴的王",
           "phase": 3,
-          "themes": [
-            "敬拜",
-            "赞美"
-          ],
+          "themes": ["敬拜", "赞美"],
           "bpm": 103.4,
           "key": "F",
           "mode": "major",
@@ -159,10 +144,7 @@
           "song_id": "wo_de_jiu_shu_zhe_huo_zhu_3cde60a8",
           "title": "我的救贖者活著",
           "phase": 4,
-          "themes": [
-            "十字架",
-            "赞美"
-          ],
+          "themes": ["十字架", "赞美"],
           "bpm": 71.8,
           "key": "A",
           "mode": "major",
@@ -196,10 +178,7 @@
           "song_id": "fan_ruo_yi_kao_ye_he_hua_05a20f2f",
           "title": "凡若依靠耶和華",
           "phase": 1,
-          "themes": [
-            "赞美",
-            "敬拜"
-          ],
+          "themes": ["赞美", "敬拜"],
           "bpm": 92.3,
           "key": "C",
           "mode": "major",
@@ -216,10 +195,7 @@
           "song_id": "xi_le_quan_yuan_88cd7a75",
           "title": "喜樂泉源",
           "phase": 3,
-          "themes": [
-            "敬拜",
-            "赞美"
-          ],
+          "themes": ["敬拜", "赞美"],
           "bpm": 95.7,
           "key": "G",
           "mode": "major",
@@ -236,10 +212,7 @@
           "song_id": "zhu_a__wo_yao_gen_sui_mi_83163301",
           "title": "主啊，我要跟隨祢",
           "phase": 5,
-          "themes": [
-            "跟随",
-            "奉献"
-          ],
+          "themes": ["跟随", "奉献"],
           "bpm": 71.8,
           "key": "F",
           "mode": "major",
@@ -273,10 +246,7 @@
           "song_id": "dan_qin_ge_chang_zan_mei_mi_5dd9d103",
           "title": "彈琴歌唱讚美祢",
           "phase": 1,
-          "themes": [
-            "赞美",
-            "敬拜"
-          ],
+          "themes": ["赞美", "敬拜"],
           "bpm": 92.3,
           "key": "A",
           "mode": "major",
@@ -293,10 +263,7 @@
           "song_id": "xi_le_quan_yuan_88cd7a75",
           "title": "喜樂泉源",
           "phase": 3,
-          "themes": [
-            "敬拜",
-            "赞美"
-          ],
+          "themes": ["敬拜", "赞美"],
           "bpm": 95.7,
           "key": "G",
           "mode": "major",
@@ -313,10 +280,7 @@
           "song_id": "zhu_a__wo_yao_gen_sui_mi_83163301",
           "title": "主啊，我要跟隨祢",
           "phase": 5,
-          "themes": [
-            "跟随",
-            "奉献"
-          ],
+          "themes": ["跟随", "奉献"],
           "bpm": 71.8,
           "key": "F",
           "mode": "major",
@@ -350,10 +314,7 @@
           "song_id": "zhu_de_xi_le_shi_wo_li_liang_e1084c5e",
           "title": "主的喜樂是我力量",
           "phase": 1,
-          "themes": [
-            "赞美",
-            "信心"
-          ],
+          "themes": ["赞美", "信心"],
           "bpm": 95.7,
           "key": "E",
           "mode": "major",
@@ -370,10 +331,7 @@
           "song_id": "xi_le_quan_yuan_88cd7a75",
           "title": "喜樂泉源",
           "phase": 3,
-          "themes": [
-            "敬拜",
-            "赞美"
-          ],
+          "themes": ["敬拜", "赞美"],
           "bpm": 95.7,
           "key": "G",
           "mode": "major",
@@ -390,10 +348,7 @@
           "song_id": "zhu_a__wo_yao_gen_sui_mi_83163301",
           "title": "主啊，我要跟隨祢",
           "phase": 5,
-          "themes": [
-            "跟随",
-            "奉献"
-          ],
+          "themes": ["跟随", "奉献"],
           "bpm": 71.8,
           "key": "F",
           "mode": "major",
