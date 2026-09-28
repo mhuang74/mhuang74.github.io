@@ -1,8 +1,9 @@
 ---
 // Showcase demo: interactive explorer for Stream of Worship's songset
-// constructor, driven by a real eval run (eval/run1_standard/proposals.json).
-// Vanilla is:inline script — no framework, no CDN dependencies.
-// Data snapshot: 2026-07-26, run songset-20260726T070852Z-3s-top5.
+// constructor. Dataset is imported verbatim from the repo's eval harness
+// output (eval/run1_standard/proposals.json) at build time — no hand-copied
+// numbers. Vanilla is:inline script — no framework, no CDN dependencies.
+import proposalsJson from "@/assets/sow-songset-run1-standard.json";
 
 const PHASES: Record<string, string> = {
   "1": "Praise 讚美",
@@ -12,149 +13,14 @@ const PHASES: Record<string, string> = {
   "5": "Sending 差遣",
 };
 
-const DATA = {
-  poolSize: 438,
-  transitionPairs: 191406,
-  proposals: [
-    {
-      rank: 1,
-      score: {
-        total: 0.8485,
-        theme: 1.0,
-        tempo: 0.6415,
-        harmony: 0.78,
-        diversity: 1.0,
-      },
-      items: [
-        {
-          title: "披上讚美衣",
-          key: "A",
-          mode: "major",
-          bpm: 95.7,
-          phase: 1,
-          confidence: 0.785,
-          crossfade: null,
-          shift: 0,
-        },
-        {
-          title: "喜樂泉源",
-          key: "G",
-          mode: "major",
-          bpm: 95.7,
-          phase: 3,
-          confidence: 0.806,
-          crossfade: null,
-          shift: 0,
-        },
-        {
-          title: "主啊，我要跟隨祢",
-          key: "F",
-          mode: "major",
-          bpm: 71.8,
-          phase: 5,
-          confidence: 0.486,
-          crossfade: null,
-          shift: 0,
-        },
-      ],
-    },
-    {
-      rank: 2,
-      score: {
-        total: 0.7485,
-        theme: 0.9167,
-        tempo: 0.526,
-        harmony: 0.62,
-        diversity: 1.0,
-      },
-      items: [
-        {
-          title: "美好的創造",
-          key: "C",
-          mode: "major",
-          bpm: 103.4,
-          phase: 1,
-          confidence: 0.554,
-          crossfade: null,
-          shift: 0,
-        },
-        {
-          title: "我們愛戴的王",
-          key: "F",
-          mode: "major",
-          bpm: 103.4,
-          phase: 3,
-          confidence: 0.455,
-          crossfade: null,
-          shift: 0,
-        },
-        {
-          title: "我的救贖者活著",
-          key: "A",
-          mode: "major",
-          bpm: 71.8,
-          phase: 4,
-          confidence: 0.84,
-          crossfade: 4,
-          shift: 1,
-        },
-      ],
-    },
-    {
-      rank: 3,
-      score: {
-        total: 0.6971,
-        theme: 1.0,
-        tempo: 0.5905,
-        harmony: 0.85,
-        diversity: 1.0,
-      },
-      items: [
-        {
-          title: "凡若依靠耶和華",
-          key: "C",
-          mode: "major",
-          bpm: 92.3,
-          phase: 1,
-          confidence: 0.42,
-          crossfade: null,
-          shift: 0,
-        },
-        {
-          title: "喜樂泉源",
-          key: "G",
-          mode: "major",
-          bpm: 95.7,
-          phase: 3,
-          confidence: 0.806,
-          crossfade: null,
-          shift: 0,
-        },
-        {
-          title: "主啊，我要跟隨祢",
-          key: "F",
-          mode: "major",
-          bpm: 71.8,
-          phase: 5,
-          confidence: 0.486,
-          crossfade: null,
-          shift: 0,
-        },
-      ],
-    },
-  ],
-};
-
 // Deterministic pseudo-random waveforms seeded per song so the shapes are
-// stable across renders (no audio is shipped; these are illustrative peaks
-// the constructor's boundary analysis would inspect).
+// stable across renders. No audio is shipped (repo gitignores media); these
+// bars are illustrative only — surfaced in the UI via the SYNTHETIC_WAVE_NOTE.
 function makePeaks(seed: string, n: number): number[] {
   let h = 2166136261;
   for (const c of seed) {
     h = Math.imul(h ^ c.charCodeAt(0), 16777619);
   }
-  // Unsigned-right-shift operators sit in module functions (not arrow
-  // closures) to stay clear of the Astro TSX parser's `>>>`/`>` ambiguity.
   function next(): number {
     h = Math.imul(h ^ (h >>> 15), 2246822519);
     h ^= h >>> 13;
@@ -167,17 +33,55 @@ function makePeaks(seed: string, n: number): number[] {
   return out;
 }
 
-const proposals = DATA.proposals.map(p => {
+const run = proposalsJson as {
+  run_id: string;
+  proposals: Array<{
+    rank: number;
+    items: Array<{
+      position: number;
+      title: string;
+      key: string;
+      mode: string;
+      bpm: number;
+      phase: number;
+      key_confidence: number;
+      crossfade_duration_seconds: number;
+      key_shift_semitones: number;
+    }>;
+    score: Record<string, number>;
+  }>;
+};
+
+const proposals = run.proposals.map(p => {
   return {
-    ...p,
+    rank: p.rank,
+    score: {
+      theme: p.score.f_theme,
+      tempo: p.score.f_tempo,
+      harmony: p.score.f_harmony,
+      diversity: p.score.f_diversity,
+      total: p.score.total,
+    },
     items: p.items.map(it => {
-      return { ...it, peaks: makePeaks(it.title + it.key, 48) };
+      return {
+        title: it.title,
+        key: it.key,
+        mode: it.mode,
+        bpm: it.bpm,
+        phase: it.phase,
+        confidence: it.key_confidence,
+        crossfade: it.crossfade_duration_seconds || null,
+        shift: it.key_shift_semitones,
+        peaks: makePeaks(it.title + it.key, 48),
+      };
     }),
-    phasePath: p.items.map(
-      it => PHASES[String(it.phase)] ?? `Phase ${it.phase}`
-    ),
+    phasePath: p.items.map(it => PHASES[String(it.phase)] ?? `Phase ${it.phase}`),
   };
 });
+
+const RUN_ID = run.run_id;
+const SYNTHETIC_WAVE_NOTE =
+  "Waveform bars are synthetic placeholders — no audio is shipped. Song, key, BPM, crossfade, and score values are verbatim constructor output.";
 ---
 
 <div
@@ -192,9 +96,7 @@ const proposals = DATA.proposals.map(p => {
       Showcase — songset constructor output
     </p>
     <p class="font-mono text-xs text-foreground/60">
-      pool <strong class="text-foreground/90">{DATA.poolSize}</strong> songs ·
-      <strong class="text-foreground/90">{DATA.transitionPairs}</strong>
-      transitions scored · run <em>run1_standard</em>
+      run <em>{RUN_ID}</em>
     </p>
   </div>
 
@@ -230,23 +132,31 @@ const proposals = DATA.proposals.map(p => {
     <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5" id="sow-scores">
     </div>
 
+    <p class="mt-3 font-mono text-[10px] leading-relaxed text-foreground/50">
+      {SYNTHETIC_WAVE_NOTE}
+    </p>
+
     <noscript>
       <div class="mt-4 space-y-3">
         <p class="text-sm text-foreground/80">
-          JavaScript is disabled — the ranked proposals are: 1)
-          <strong>披上讚美衣 → 喜樂泉源 → 主啊，我要跟隨祢</strong>
-          (score 0.8485; A→G→F major, 95.7 → 95.7 → 71.8 BPM), 2)
-          <strong>美好的創造 → 我們愛戴的王 → 我的救贖者活著</strong>
-          (score 0.7485), 3)
-          <strong>凡若依靠耶和華 → 喜樂泉源 → 主啊，我要跟隨祢</strong>
-          (score 0.6971). The full scored detail is in the repo's
+          JavaScript is disabled — the ranked proposals are:
+          {
+            proposals.map(p => (
+              <span>
+                <br />
+                {p.rank}) <strong>{p.items.map(i => i.title).join(" → ")}</strong>{" "}
+                (score {p.score.total})
+              </span>
+            ))
+          }
+          . The full scored detail is in the repo's
           <code>eval/run1_standard/proposals.json</code>.
         </p>
       </div>
     </noscript>
   </div>
 
-  <script is:inline>
+  <script is:inline data-astro-rerun define:vars={{ }}>
     (function () {
       const root = document.getElementById("sow-showcase");
       if (!root) return;
@@ -256,6 +166,10 @@ const proposals = DATA.proposals.map(p => {
       } catch {
         return;
       }
+
+      // Guard against double-binding across ClientRouter re-runs.
+      if (root.dataset.sowInit === "1") return;
+      root.dataset.sowInit = "1";
 
       const lanes = root.querySelector("#sow-lanes");
       const scores = root.querySelector("#sow-scores");
@@ -284,16 +198,16 @@ const proposals = DATA.proposals.map(p => {
         let rects = "";
         for (let i = 0; i < peaks.length; i++) {
           const amp = peaks[i] * mid;
-          rects += `<rect x="${(i * barW).toFixed(1)}" y="${(mid - amp).toFixed(1)}" width="${(barW * 0.62).toFixed(1)}" height="${(amp * 2).toFixed(1)}" rx="0.5" fill="currentColor" opacity="0.55"/>`;
+          rects += '<rect x="' + (i * barW).toFixed(1) + '" y="' + (mid - amp).toFixed(1) + '" width="' + (barW * 0.62).toFixed(1) + '" height="' + (amp * 2).toFixed(1) + '" rx="0.5" fill="currentColor" opacity="0.55"/>';
         }
-        return `<svg viewBox="0 0 ${w} ${h}" class="h-11 w-full" aria-hidden="true">${rects}</svg>`;
+        return '<svg viewBox="0 0 ' + w + " " + h + '" class="h-11 w-full" aria-hidden="true">' + rects + "</svg>";
       }
 
       function transitionNote(prev, next) {
         if (next.crossfade) {
-          return `${next.crossfade}s crossfade · shifts +${next.shift} semitone into ${next.key}`;
+          return next.crossfade + "s crossfade · shifts +" + next.shift + " semitone into " + next.key;
         }
-        return `${prev.key} ${prev.mode} · ${prev.bpm} → ${next.key} ${next.mode} · ${next.bpm} BPM`;
+        return prev.key + " " + prev.mode + " · " + prev.bpm + " → " + next.key + " " + next.mode + " · " + next.bpm + " BPM";
       }
 
       function renderProposal(idx) {
@@ -305,30 +219,31 @@ const proposals = DATA.proposals.map(p => {
           const row = document.createElement("div");
           row.className =
             "grid grid-cols-[7rem_1fr] items-center gap-3 sm:grid-cols-[10rem_1fr_12rem]";
-          row.innerHTML = `
-            <div>
-              <p class="text-sm font-medium leading-tight">${it.title}</p>
-              <p class="font-mono text-[10px] text-foreground/60">Phase ${it.phase} · ${it.key} ${it.mode}</p>
-            </div>
-            <div class="text-accent">${laneSvg(it.peaks)}</div>
-            <div class="col-span-2 font-mono text-[11px] leading-snug text-foreground/70 sm:col-span-1">
-              ${it.bpm} BPM · key conf. ${(it.confidence * 100).toFixed(0)}%${
-                i > 0
-                  ? `<br><span class="text-accent">→ in:</span> ${transitionNote(p.items[i - 1], it)}`
-                  : ""
-              }
-            </div>`;
+          row.innerHTML =
+            '<div>' +
+            '<p class="text-sm font-medium leading-tight">' + it.title + "</p>" +
+            '<p class="font-mono text-[10px] text-foreground/60">Phase ' + it.phase + " · " + it.key + " " + it.mode + "</p>" +
+            "</div>" +
+            '<div class="text-accent">' + laneSvg(it.peaks) + "</div>" +
+            '<div class="col-span-2 font-mono text-[11px] leading-snug text-foreground/70 sm:col-span-1">' +
+            it.bpm + " BPM · key conf. " + (it.confidence * 100).toFixed(0) + "%" +
+            (i > 0
+              ? '<br><span class="text-accent">→ in:</span> ' + transitionNote(p.items[i - 1], it)
+              : "") +
+            "</div>";
           lanes.appendChild(row);
         });
 
         scores.innerHTML = "";
-        for (const [key, label] of SCORE_LABELS) {
+        for (const pair of SCORE_LABELS) {
+          const key = pair[0];
+          const label = pair[1];
           const val = p.score[key];
           const cell = document.createElement("div");
           cell.className = "rounded-md bg-muted/50 px-3 py-2";
-          cell.innerHTML = `
-            <p class="font-mono text-[10px] tracking-widest text-foreground/60 uppercase">${label}</p>
-            <p class="font-mono text-sm font-medium">${val.toFixed(3)}</p>`;
+          cell.innerHTML =
+            '<p class="font-mono text-[10px] tracking-widest text-foreground/60 uppercase">' + label + "</p>" +
+            '<p class="font-mono text-sm font-medium">' + Number(val).toFixed(3) + "</p>";
           scores.appendChild(cell);
         }
 
@@ -348,7 +263,8 @@ const proposals = DATA.proposals.map(p => {
 
       // Re-tint waveforms on theme toggle (attribute change on <html>).
       const themeObserver = new MutationObserver(() => {
-        const selected = [...tabs].findIndex(
+        const selected = Array.prototype.findIndex.call(
+          tabs,
           t => t.getAttribute("aria-selected") === "true"
         );
         renderProposal(selected >= 0 ? selected : 0);
