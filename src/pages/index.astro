@@ -1,198 +1,299 @@
 ---
-import { getCollection } from "astro:content";
+/**
+ * Portfolio landing — AstroPaper drop-in.
+ *
+ * Place at: src/pages/index.astro  (replaces AstroPaper's default home)
+ * Requires: AstroPaper's `src/layouts/Layout.astro`, which already renders
+ *           the header, nav, theme toggle, and footer.
+ * Image:    drop the portrait at public/portrait.jpg (referenced below).
+ *
+ * Colors come from AstroPaper's own tokens (--background, --foreground,
+ * --accent, --muted, --border), so light/dark mode is inherited automatically.
+ */
 import Layout from "@/layouts/Layout.astro";
-import Header from "@/components/Header.astro";
-import Footer from "@/components/Footer.astro";
-import LinkButton from "@/components/LinkButton.astro";
-import Card from "@/components/Card.astro";
-import TechStackCard from "@/components/TechStackCard.astro";
-import WorkCard from "@/components/WorkCard.astro";
-import Hr from "@/components/Hr.astro";
-import getSortedPosts from "@/utils/getSortedPosts";
-import IconArrowRight from "@/assets/icons/IconArrowRight.svg";
-import { SITE } from "@/config";
 
-const posts = await getCollection("blog");
+const stats = [
+  { num: "3", unit: "", label: "AI sub-agents shipped in a production Azure-OpenAI chatbot, from spec to rollout." },
+  { num: "12", unit: "×", label: "faster intraday cost & revenue reporting, from a new-generation OLAP pipeline." },
+  { num: "700", unit: "+", label: "marketing automations running on the Scripts platform I shipped." },
+  { num: "30", unit: "", label: "person engineering team I led in Shanghai, across five ad platforms." },
+];
 
-const sortedPosts = getSortedPosts(posts);
-const featuredPosts = sortedPosts.filter(({ data }) => data.featured);
-const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
+const decisions = [
+  ["Transition quality is a boundary problem.", "Compatibility is judged on the key a song leaves through versus the key the next one arrives through, plus boundary BPM — not whole-song averages."],
+  ["Worship practice encoded as constraints.", "Sets follow a fixed five-phase arc; a beam-search constructor runs constrained search with a scored objective over the whole catalog."],
+  ["Domain priors beat generic models.", "Worship BPM priors plus a lognormal prior from lyrics characters-per-second resolve the octave errors that fool off-the-shelf tempo estimators."],
+  ["A serverless render pipeline.", "Crossfaded MP3s and ~29,000-frame lyric MP4s render in an AWS Lambda container triggered by SQS, with progress streamed to the browser."],
+];
 
-const allWorks = await getCollection("work");
-const featuredWorks = allWorks.filter(({ data }) => data.featured);
+const sowStack = ["Next.js 16", "FastAPI", "AWS Lambda / SQS", "Neon Postgres + pgvector", "Cloudflare R2", "PyTorch / Demucs", "Jetpack Compose"];
+
+const projects = [
+  {
+    pill: "Claude agent skill",
+    title: "googleads-analyst-skill",
+    body: "A Claude agent skill that runs period-over-period Google Ads analysis, root-causes anomalies against change-event history, and applies approved mutations — with guardrails at every irreversible step.",
+    metric: "60+ GAQL fields validated across 12 resources before shipping.",
+    tags: ["Agent skills", "mcc-gaql CLI", "Prompt engineering"],
+  },
+  {
+    pill: "Rust · RAG",
+    title: "mcc-gaql-rs",
+    body: "Three Rust CLIs for querying, mutating, and LLM-generating Google Ads GAQL across MCC child accounts — with a RAG pipeline that knows the API schema better than a generalist model.",
+    metric: "Natural language → GAQL in ~3–4 s end to end.",
+    tags: ["Rust", "tonic gRPC", "Polars", "LanceDB + Arrow", "Cloudflare R2"],
+  },
+];
+
+const principles = [
+  ["Start from the frustration, not the feature request", "When customers ask for faster horses, I focus on the core frustration and solve the parts that don't drag in expensive technical risk."],
+  ["Design around the constraint", "Venue Wi-Fi, messy catalogs, free-tier budgets — constraints are the spec. I design the product around them instead of assuming them away."],
+  ["Ship the proof", "Pick a real problem, design around the user's constraints, then ship the code, the infrastructure, and the evaluation loop that proves it works."],
+];
+
+const timeline = [
+  { when: "2022 – Now", role: "Technical Product Manager", dek: "Shipped an AI chatbot with three specialized sub-agents on Azure OpenAI, a Scripts platform running 700+ marketing automations, and ML anomaly detection across hundreds of campaigns.", pull: "Product" },
+  { when: "2012 – 2022", role: "Marin Software — Technical Lead → Director → Senior Director of Engineering", dek: "Built search features across five ad platforms, led a 30-person Shanghai team, and delivered an OLAP pipeline that made intraday cost and revenue reporting 12× faster.", pull: "Engineering" },
+  { when: "Before 2012", role: "Trilogy · MetLife · Morgan Stanley", dek: "Underwriting automation, trade-processing tooling, and anti-money-laundering systems — plus my own offshore engineering consultancy in Shanghai.", pull: "Earlier" },
+  { when: "Degrees", role: "Cornell (M.Eng.) · UC Berkeley (B.A. Physics)", dek: "An engineering master's and a physics degree — and a lasting habit of building the thing, not just specifying it.", pull: "Education" },
+];
+
+const posts = [
+  { date: "25 Sep 2026", title: "Stream of Worship — a series", href: "/posts/sow-intro", dek: "Introducing a series on building a system for seamless Chinese worship-music transitions.", pull: "Series" },
+  { date: "13 Nov 2025", title: "HandsOff — protection from little fingers and paws", href: "/posts/handsoff", dek: "A macOS utility to lock the keyboard and mouse while leaving the screen viewable.", pull: "Tool" },
+  { date: "28 Mar 2022", title: "What contributing to QSV taught me", href: "/posts/qsv-lessons", dek: "Learning Rust with my first real project.", pull: "Rust" },
+  { date: "8 Apr 2022", title: "Visualize NYC 311 call stats via Zola", href: "/posts/quick-look-at-charts", dek: "Playing with chart.xkcd and vega-lite on real municipal data.", pull: "Data" },
+];
 ---
 
-<Layout>
-  <Header />
-  <main id="main-content" data-layout="index">
-    <section id="hero" class="pt-12 pb-10 sm:pt-16">
-      <p
-        class="font-mono text-xs tracking-widest text-accent uppercase sm:text-sm"
-      >
-        Product Manager · Builder
-      </p>
-      <h1
-        class="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-5xl"
-      >
-        Product Manager who navigates technical shallows and builds products end
-        to end.
-      </h1>
-      <p class="mt-4 max-w-2xl text-lg leading-relaxed text-foreground/80">
-        When customers ask for Faster Horses, I focus on their core frustrations
-        and solve the ones that don't drag in expensive technical risks. I'm
-        Michael Huang and I ship the products I manage. I have led products
-        ranging from audio-analysis and lyrics time-coding automation to Google
-        Ads analyst skills, anomaly reports, analytics dashboards, and
-        business-critical ETL pipelines.
-      </p>
-      <LinkButton
-        href="/work"
-        class="mt-6 inline-flex items-center gap-1 rounded-md border border-accent/60 px-4 py-2 font-medium text-accent hover:bg-accent/10"
-      >
-        See my work
-        <IconArrowRight class="h-4 w-4" />
-      </LinkButton>
-    </section>
-
-    {
-      featuredWorks.length > 0 && (
-        <>
-          <Hr />
-          <section id="featured-work" class="pt-12 pb-6">
-            <h2 class="text-2xl font-semibold tracking-wide">Featured Work</h2>
-            <div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {featuredWorks.map(({ id, data }) => (
-                <WorkCard
-                  title={data.title}
-                  role={data.role}
-                  stack={data.stack.slice(0, 4)}
-                  outcome={data.outcomes[0]}
-                  description={data.description}
-                  href={`/work/${id}`}
-                />
-              ))}
-            </div>
-            <div class="mt-6 text-right">
-              <LinkButton
-                href="/work"
-                class="hover:text-accent"
-                ariaLabel="all work"
-                title="All Work"
-              >
-                All Work
-                <IconArrowRight class="inline-block h-4 w-4" />
-              </LinkButton>
-            </div>
-          </section>
-        </>
-      )
-    }
-
-    <Hr />
-
-    <section id="focus-areas" class="pt-12 pb-6">
-      <h2 class="text-3xl font-bold text-foreground sm:text-4xl">
-        Focus Areas
-      </h2>
-      <p class="mt-2 mb-8 text-foreground/70">
-        Domains I've designed, built, and managed products in.
-      </p>
-      <div class="grid gap-6 sm:grid-cols-2">
-        <TechStackCard
-          title="Machine Learning"
-          description="time-series anomaly detection · forecasting · Python · Pandas · NumPy · scikit-learn · Jupyter"
-        />
-        <TechStackCard
-          title="Agents & RAG Search"
-          description="LangGraph Agentic Loops · RAG-enhanced query generation · LanceDB · pgvector"
-        />
-        <TechStackCard
-          title="Data Engineering"
-          description="Spark ETL pipelines · Avro · ORC · Parquet · Trino"
-        />
-        <TechStackCard
-          title="Data Analytics & Dashboards"
-          description="AWS Quicksight · Athena · EMR · Lambda · S3"
-        />
-        <TechStackCard
-          title="Distributed & Reactive Microservices"
-          description="Kafka · Akka · Scala/Java"
-        />
-        <TechStackCard
-          title="Product Management"
-          description="Jobs-to-be-Done · roadmaps · stakeholder management · team leadership"
-        />
-        <TechStackCard
-          title="Growth & Marketing Analytics"
-          description="Google Ads · conversion attribution · marketing automation"
-        />
+<Layout
+  title="Michael S. Huang · Technical Product Manager"
+  description="Technical Product Manager who ships the software he manages — data platforms, ML systems, and LLM tooling, from design through production."
+>
+  <!-- hero -->
+  <section class="pl-hero" data-od-id="hero">
+    <div class="pl-hero-split">
+      <div>
+        <p class="eyebrow">Technical Product Manager · Builder</p>
+        <h1>A product manager who ships the software he manages.</h1>
+        <p class="lead">I work where product decisions meet hard technical constraints: data platforms, ML systems, and LLM tooling. I design, ship, and operate the software I manage.</p>
+        <div class="cta-row">
+          <a class="btn-primary" href="mailto:michael@michaelhuang.xyz" data-od-id="hero-cta-email">Email me about TPM roles</a>
+          <a class="btn-ghost" href="#work">See selected work →</a>
+        </div>
+        <p class="note">Product judgment sharpened by knowing what the work actually costs.</p>
       </div>
-    </section>
+      <div class="portrait-frame">
+        <img class="portrait" src="/portrait.jpg" width="640" height="640" alt="Portrait of Michael S. Huang" />
+        <span class="portrait-chip">Open to full-time TPM roles</span>
+      </div>
+    </div>
+  </section>
 
-    {
-      featuredPosts.length > 0 && (
-        <>
-          <Hr />
-          <section id="featured-writing" class="pt-12 pb-6">
-            <h2 class="text-2xl font-semibold tracking-wide">Featured</h2>
-            <ul>
-              {featuredPosts.map(data => (
-                <Card variant="h3" {...data} />
-              ))}
-            </ul>
-          </section>
-        </>
-      )
-    }
+  <!-- proof -->
+  <section class="pl-section" data-od-id="stats">
+    <p class="eyebrow">Track record · what shipped</p>
+    <div class="stats">
+      {stats.map((s) => (
+        <div class="stat">
+          <div class="stat-num">{s.num}<span class="stat-unit">{s.unit}</span></div>
+          <p class="stat-label">{s.label}</p>
+        </div>
+      ))}
+    </div>
+  </section>
 
-    {
-      recentPosts.length > 0 && (
-        <>
-          <Hr />
-          <section id="recent-posts" class="pt-12 pb-6">
-            <h2 class="text-2xl font-semibold tracking-wide">Recent Writing</h2>
-            <ul>
-              {recentPosts.map(
-                (data, index) =>
-                  index < SITE.postPerIndex && <Card variant="h3" {...data} />
-              )}
-            </ul>
-          </section>
-        </>
-      )
-    }
+  <!-- flagship -->
+  <section class="pl-section" id="work" data-od-id="work-feature">
+    <div class="work-split">
+      <div>
+        <p class="eyebrow">Selected work · 01</p>
+        <h2>Stream of Worship</h2>
+        <p class="lead">Chinese worship teams have no tooling for the space between songs. I designed and built the system that turns a song list into a seamless, offline-capable worship set — one continuous audio file plus a lyrics video with chapter markers.</p>
+        <ul class="decisions">
+          {decisions.map(([head, body]) => (
+            <li><strong>{head}</strong> {body}</li>
+          ))}
+        </ul>
+      </div>
+      <aside class="facts" data-od-id="work-facts">
+        <dl>
+          <div><dt>Role</dt><dd>Product Owner &amp; Engineer</dd></div>
+          <div><dt>Team</dt><dd>Solo</dd></div>
+          <div><dt>Scale</dt><dd>400+ song catalog, thousands of scored pairwise transitions</dd></div>
+          <div>
+            <dt>Stack</dt>
+            <dd class="tag-row">{sowStack.map((t) => <span class="tag">{t}</span>)}</dd>
+          </div>
+        </dl>
+      </aside>
+    </div>
+  </section>
 
-    <Hr />
+  <!-- more work -->
+  <section class="pl-section" data-od-id="more-work">
+    <p class="eyebrow">More work</p>
+    <h2>Two more products, two more constraint sets.</h2>
+    <div class="work-grid">
+      {projects.map((p) => (
+        <article class="work-card">
+          <span class="pill">{p.pill}</span>
+          <h3>{p.title}</h3>
+          <p>{p.body}</p>
+          <p class="metric">{p.metric}</p>
+          <div class="tag-row">{p.tags.map((t) => <span class="tag">{t}</span>)}</div>
+        </article>
+      ))}
+    </div>
+  </section>
 
-    <section id="about-teaser" class="pt-12 pb-6">
-      <h2 class="text-2xl font-semibold tracking-wide">About</h2>
-      <p class="mt-3 max-w-2xl leading-relaxed text-foreground/80">
-        I've spent my career where product decisions meet hard technical
-        constraints — data platforms, ML systems, and most recently LLM tooling.
-        I still write code and ship infrastructure for the products I manage,
-        because the best product judgment comes from knowing what the work
-        actually costs.
-      </p>
-      <LinkButton
-        href="/about"
-        class="mt-4 inline-flex items-center gap-1 font-medium text-accent hover:underline"
-        ariaLabel="read more about me"
-        title="Read more about me"
-      >
-        Read more about me
-        <IconArrowRight class="h-4 w-4" />
-      </LinkButton>
-    </section>
-  </main>
-  <Footer />
+  <!-- how I work -->
+  <section class="pl-section" data-od-id="principles">
+    <p class="eyebrow">How I work</p>
+    <h2>Three habits that survive contact with a real codebase.</h2>
+    <div class="feature-grid">
+      {principles.map(([head, body]) => (
+        <div class="feature">
+          <h3>{head}</h3>
+          <p>{body}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- experience -->
+  <section class="pl-section" id="experience" data-od-id="experience">
+    <p class="eyebrow">Experience</p>
+    <h2>One through-line across every role: stay close to the implementation.</h2>
+    <div class="log">
+      {timeline.map((r) => (
+        <article class="log-row">
+          <span class="meta">{r.when}</span>
+          <div>
+            <h3>{r.role}</h3>
+            <p class="dek">{r.dek}</p>
+          </div>
+          <span class="meta pull">{r.pull}</span>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <!-- writing -->
+  <section class="pl-section" id="writing" data-od-id="writing">
+    <div class="head-row">
+      <div>
+        <p class="eyebrow">Writing</p>
+        <h2>Notes from building in public.</h2>
+      </div>
+      <a class="btn-ghost" href="/posts">Read all posts →</a>
+    </div>
+    <div class="log">
+      {posts.map((p) => (
+        <article class="log-row">
+          <span class="meta">{p.date}</span>
+          <div>
+            <h3><a href={p.href}>{p.title}</a></h3>
+            <p class="dek">{p.dek}</p>
+          </div>
+          <span class="meta pull">{p.pull}</span>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <!-- cta -->
+  <section class="pl-section cta-strip" id="contact" data-od-id="cta-strip">
+    <p class="eyebrow">Contact</p>
+    <h2>Hiring a TPM who can read the code?</h2>
+    <p class="lead">Tell me the problem your team is stuck on. I'd rather walk you through the work than describe it. Reach me at <a href="mailto:michael@michaelhuang.xyz">michael@michaelhuang.xyz</a>.</p>
+    <a class="btn-primary" href="mailto:michael@michaelhuang.xyz?subject=TPM%20role" data-od-id="cta-email">Start the conversation</a>
+  </section>
 </Layout>
 
-<script>
-  document.addEventListener("astro:page-load", () => {
-    const indexLayout = (document.querySelector("#main-content") as HTMLElement)
-      ?.dataset?.layout;
-    if (indexLayout) {
-      sessionStorage.setItem("backUrl", "/");
-    }
-  });
-</script>
+<style>
+  .pl-hero, .pl-section {
+    max-width: 1120px;
+    margin-inline: auto;
+    padding-inline: 32px;
+    padding-block: clamp(48px, 8vw, 96px);
+  }
+  .pl-section { border-top: 1px solid var(--border); }
+  .eyebrow {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 20px;
+  }
+  h1, h2 { font-family: 'Iowan Old Style', 'Charter', Georgia, serif; font-weight: 600; letter-spacing: -0.02em; }
+  h1 { font-size: clamp(44px, 6vw, 76px); line-height: 1.04; margin: 0 0 20px; }
+  h2 { font-size: clamp(32px, 4vw, 48px); line-height: 1.1; margin: 0 0 28px; }
+  h3 { font-size: 21px; font-weight: 600; margin: 0 0 6px; }
+  .lead { font-size: 19px; line-height: 1.55; color: color-mix(in oklch, var(--foreground) 80%, transparent); max-width: 60ch; margin: 0 0 32px; }
+  .note { font-size: 13px; color: color-mix(in oklch, var(--foreground) 80%, transparent); margin-top: 20px; }
+  .pl-hero-split { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(40px, 6vw, 80px); align-items: center; }
+  .cta-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  a.btn-primary, a.btn-ghost {
+    display: inline-flex; align-items: center; gap: 8px; min-height: 44px;
+    padding: 12px 20px; border-radius: 10px; border: 1px solid transparent;
+    font-size: 15px; font-weight: 500; text-decoration: none;
+  }
+  a.btn-primary { background: var(--accent); color: var(--background); border-color: var(--accent); }
+  a.btn-primary:hover { background: color-mix(in oklch, var(--accent) 86%, black); }
+  a.btn-ghost { color: var(--foreground); padding-inline: 8px; }
+  a.btn-ghost:hover { color: var(--accent); }
+  .portrait-frame { position: relative; }
+  .portrait { width: 100%; height: auto; border-radius: 16px; border: 1px solid var(--border); }
+  .portrait-chip {
+    position: absolute; left: 14px; bottom: 14px;
+    background: color-mix(in oklch, var(--background) 84%, transparent);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    border: 1px solid var(--border); color: var(--foreground);
+    font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px;
+    letter-spacing: 0.06em; text-transform: uppercase; padding: 8px 13px; border-radius: 999px;
+  }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+  .stat-num { font-family: 'Iowan Old Style', Georgia, serif; font-size: clamp(52px, 7vw, 84px); line-height: 0.95; letter-spacing: -0.04em; font-weight: 600; }
+  .stat-unit { font-size: 0.5em; opacity: 0.6; margin-left: 2px; }
+  .stat-label { color: color-mix(in oklch, var(--foreground) 80%, transparent); font-size: 14px; margin-top: 10px; max-width: 26ch; }
+  .work-split { display: grid; grid-template-columns: 2fr 1fr; gap: 56px; align-items: start; }
+  .decisions { list-style: none; padding: 0; margin: 32px 0 0; display: grid; gap: 14px; }
+  .decisions li { position: relative; padding-left: 20px; color: color-mix(in oklch, var(--foreground) 80%, transparent); font-size: 15px; line-height: 1.5; }
+  .decisions li::before { content: ''; position: absolute; left: 0; top: 8px; width: 6px; height: 6px; border: 1px solid currentColor; border-radius: 1px; }
+  .decisions strong { color: var(--foreground); font-weight: 600; }
+  .facts { background: var(--background); border: 1px solid var(--border); border-radius: 16px; padding: 28px; }
+  .facts dl { display: grid; gap: 20px; margin: 0; }
+  .facts dt { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: color-mix(in oklch, var(--foreground) 80%, transparent); }
+  .facts dd { margin: 5px 0 0; font-size: 15px; }
+  .work-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px; }
+  .work-card { display: flex; flex-direction: column; gap: 20px; background: var(--background); border: 1px solid var(--border); border-radius: 16px; padding: 28px; }
+  .work-card h3 { font-family: 'Iowan Old Style', Georgia, serif; font-size: 24px; }
+  .work-card p { margin: 0; color: color-mix(in oklch, var(--foreground) 80%, transparent); font-size: 15px; }
+  .work-card .metric { color: var(--foreground); font-size: 14px; font-weight: 500; margin-top: auto; padding-top: 20px; }
+  .pill, .tag {
+    display: inline-flex; align-items: center; border-radius: 999px;
+    font-size: 12px; padding: 5px 11px; white-space: nowrap;
+  }
+  .pill { background: color-mix(in oklch, var(--foreground) 6%, transparent); color: color-mix(in oklch, var(--foreground) 80%, transparent); font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .tag { border: 1px solid var(--border); color: color-mix(in oklch, var(--foreground) 80%, transparent); }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+  .feature h3 { font-family: 'Iowan Old Style', Georgia, serif; }
+  .feature p { margin: 0; color: color-mix(in oklch, var(--foreground) 80%, transparent); font-size: 15px; }
+  .log-row { display: grid; grid-template-columns: 130px 1fr 110px; gap: 32px; padding: 22px 0; border-top: 1px solid var(--border); align-items: baseline; }
+  .log-row .meta { font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; color: color-mix(in oklch, var(--foreground) 80%, transparent); }
+  .log-row h3 { font-size: 19px; }
+  .log-row h3 a { text-decoration: none; color: inherit; }
+  .log-row h3 a:hover { color: var(--accent); }
+  .log-row .dek { margin: 5px 0 0; color: color-mix(in oklch, var(--foreground) 80%, transparent); font-size: 14px; }
+  .log-row .pull { text-align: right; }
+  .head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 32px; }
+  .head-row h2 { margin-bottom: 0; }
+  .cta-strip { text-align: center; }
+  .cta-strip .eyebrow { margin-bottom: 16px; }
+  .cta-strip .lead { margin-inline: auto; }
+  @media (max-width: 920px) {
+    .pl-hero-split, .work-split, .stats, .work-grid, .feature-grid { grid-template-columns: 1fr; }
+    .log-row { grid-template-columns: 1fr; gap: 6px; }
+    .log-row .pull { text-align: left; }
+  }
+</style>
