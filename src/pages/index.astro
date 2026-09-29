@@ -4,13 +4,14 @@
  *
  * Place at: src/pages/index.astro  (replaces AstroPaper's default home)
  * Requires: AstroPaper's `src/layouts/Layout.astro`, which already renders
- *           the header, nav, theme toggle, and footer.
+ *           the header, nav, and theme toggle.
  * Image:    drop the portrait at public/portrait.jpg (referenced below).
  *
  * Colors come from AstroPaper's own tokens (--background, --foreground,
  * --accent, --muted, --border), so light/dark mode is inherited automatically.
  */
 import Layout from "@/layouts/Layout.astro";
+import Footer from "@/components/Footer.astro";
 import { getCollection } from "astro:content";
 
 const workHrefs = new Map((await getCollection("work")).map((w) => [w.data.title, `/work/${w.id}`]));
@@ -215,6 +216,7 @@ const posts = [
     <p class="lead">Tell me the problem your team is stuck on. I'd rather walk you through the work than describe it. Reach me at <a href="mailto:michael@michaelhuang.xyz">michael@michaelhuang.xyz</a>.</p>
     <a class="btn-primary" href="mailto:michael@michaelhuang.xyz?subject=TPM%20role" data-od-id="cta-email">Start the conversation</a>
   </section>
+  <Footer />
 </Layout>
 
 <style>
