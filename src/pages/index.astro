@@ -16,7 +16,7 @@ import { getCollection } from "astro:content";
 const workHrefs = new Map((await getCollection("work")).map((w) => [w.data.title, `/work/${w.id}`]));
 
 const stats = [
-  { num: "3", unit: "", label: "AI sub-agents shipped in a production Azure-OpenAI chatbot, from spec to rollout." },
+  { num: "8", unit: "", label: "LLM-powered product features, from spec to rollout." },
   { num: "12", unit: "×", label: "faster intraday cost & revenue reporting, from a new-generation OLAP pipeline." },
   { num: "700", unit: "+", label: "marketing automations running on the Scripts platform I shipped." },
   { num: "30", unit: "", label: "person engineering team I led in Shanghai, across five ad platforms." },
@@ -57,7 +57,7 @@ const principles = [
 ];
 
 const timeline = [
-  { when: "2022 – Now", role: "Technical Product Manager", dek: "Shipped an AI chatbot with three specialized sub-agents on Azure OpenAI, a Scripts platform running 700+ marketing automations, and ML anomaly detection across hundreds of campaigns.", pull: "Product" },
+  { when: "2022 – 2025", role: "Technical Product Manager", dek: "Shipped an AI chatbot with three specialized sub-agents on Azure OpenAI, a Scripts platform running 700+ marketing automations, and ML anomaly detection across hundreds of campaigns.", pull: "Product" },
   { when: "2012 – 2022", role: "Marin Software — Technical Lead → Director → Senior Director of Engineering", dek: "Built search features across five ad platforms, led a 30-person Shanghai team, and delivered an OLAP pipeline that made intraday cost and revenue reporting 12× faster.", pull: "Engineering" },
   { when: "Before 2012", role: "Trilogy · MetLife · Morgan Stanley", dek: "Underwriting automation, trade-processing tooling, and anti-money-laundering systems — plus my own offshore engineering consultancy in Shanghai.", pull: "Earlier" },
   { when: "Degrees", role: "Cornell (M.Eng.) · UC Berkeley (B.A. Physics)", dek: "An engineering master's and a physics degree — and a lasting habit of building the thing, not just specifying it.", pull: "Education" },
@@ -73,7 +73,7 @@ const posts = [
 
 <Layout
   title="Michael S. Huang · Technical Product Manager"
-  description="Technical Product Manager who ships the software he manages — data platforms, ML systems, and LLM tooling, from design through production."
+  description="Technical Product Manager who ships the software he manages — data platforms, ML systems, and cross-platform apps, from design through production."
 >
   <!-- hero -->
   <section class="pl-hero" data-od-id="hero">
@@ -81,7 +81,7 @@ const posts = [
       <div>
         <p class="eyebrow">Technical Product Manager · Builder</p>
         <h1>A product manager who ships the software he manages.</h1>
-        <p class="lead">I work where product decisions meet hard technical constraints: data platforms, ML systems, and LLM tooling. I design, ship, and operate the software I manage.</p>
+        <p class="lead">I work where product decisions meet hard technical constraints: data platforms, ML systems, and cross-platform apps. I design, ship, and operate the software I manage.</p>
         <div class="cta-row">
           <a class="btn-primary" href="mailto:michael@michaelhuang.xyz" data-od-id="hero-cta-email">Email me about TPM roles</a>
           <a class="btn-ghost" href="#work">See selected work →</a>
