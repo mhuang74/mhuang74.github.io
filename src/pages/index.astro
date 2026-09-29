@@ -11,6 +11,9 @@
  * --accent, --muted, --border), so light/dark mode is inherited automatically.
  */
 import Layout from "@/layouts/Layout.astro";
+import { getCollection } from "astro:content";
+
+const workHrefs = new Map((await getCollection("work")).map((w) => [w.data.title, `/work/${w.id}`]));
 
 const stats = [
   { num: "3", unit: "", label: "AI sub-agents shipped in a production Azure-OpenAI chatbot, from spec to rollout." },
@@ -32,6 +35,7 @@ const projects = [
   {
     pill: "Claude agent skill",
     title: "googleads-analyst-skill",
+    href: workHrefs.get("googleads-analyst-skill"),
     body: "A Claude agent skill that runs period-over-period Google Ads analysis, root-causes anomalies against change-event history, and applies approved mutations — with guardrails at every irreversible step.",
     metric: "60+ GAQL fields validated across 12 resources before shipping.",
     tags: ["Agent skills", "mcc-gaql CLI", "Prompt engineering"],
@@ -39,6 +43,7 @@ const projects = [
   {
     pill: "Rust · RAG",
     title: "mcc-gaql-rs",
+    href: workHrefs.get("mcc-gaql-rs"),
     body: "Three Rust CLIs for querying, mutating, and LLM-generating Google Ads GAQL across MCC child accounts — with a RAG pipeline that knows the API schema better than a generalist model.",
     metric: "Natural language → GAQL in ~3–4 s end to end.",
     tags: ["Rust", "tonic gRPC", "Polars", "LanceDB + Arrow", "Cloudflare R2"],
@@ -110,6 +115,7 @@ const posts = [
         <p class="eyebrow">Selected work · 01</p>
         <h2>Stream of Worship</h2>
         <p class="lead">Chinese worship teams have no tooling for the space between songs. I designed and built the system that turns a song list into a seamless, offline-capable worship set — one continuous audio file plus a lyrics video with chapter markers.</p>
+        <a class="btn-ghost" href={workHrefs.get("Stream of Worship")}>Read the case study →</a>
         <ul class="decisions">
           {decisions.map(([head, body]) => (
             <li><strong>{head}</strong> {body}</li>
@@ -136,13 +142,13 @@ const posts = [
     <h2>Two more products, two more constraint sets.</h2>
     <div class="work-grid">
       {projects.map((p) => (
-        <article class="work-card">
+        <a class="work-card" href={p.href}>
           <span class="pill">{p.pill}</span>
           <h3>{p.title}</h3>
           <p>{p.body}</p>
           <p class="metric">{p.metric}</p>
           <div class="tag-row">{p.tags.map((t) => <span class="tag">{t}</span>)}</div>
-        </article>
+        </a>
       ))}
     </div>
   </section>
@@ -265,7 +271,7 @@ const posts = [
   .facts dt { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: color-mix(in oklch, var(--foreground) 80%, transparent); }
   .facts dd { margin: 5px 0 0; font-size: 15px; }
   .work-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px; }
-  .work-card { display: flex; flex-direction: column; gap: 20px; background: var(--background); border: 1px solid var(--border); border-radius: 16px; padding: 28px; }
+  .work-card { display: flex; flex-direction: column; gap: 20px; background: var(--background); border: 1px solid var(--border); border-radius: 16px; padding: 28px; color: inherit; text-decoration: none; }
   .work-card h3 { font-family: 'Iowan Old Style', Georgia, serif; font-size: 24px; }
   .work-card p { margin: 0; color: color-mix(in oklch, var(--foreground) 80%, transparent); font-size: 15px; }
   .work-card .metric { color: var(--foreground); font-size: 14px; font-weight: 500; margin-top: auto; padding-top: 20px; }
