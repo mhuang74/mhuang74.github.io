@@ -15,8 +15,13 @@ import { SITE } from "@/config";
 }
 <script is:inline define:vars={{ googleAnalyticsId: SITE.googleAnalyticsId }}>
   window.dataLayer = window.dataLayer || [];
-  function gtag(...args) {
-    dataLayer.push(...args);
+  // Must push the Arguments object as a single message (Google's snippet form).
+  // `dataLayer.push(...args)` spreads into positional args, which gtag.js reads
+  // as separate model-path messages — "config" never dispatches and GA4 never
+  // registers the destination.
+  function gtag() {
+    // eslint-disable-next-line prefer-rest-params -- Arguments object is the required message form for gtag.js
+    dataLayer.push(arguments);
   }
   gtag("js", new Date());
   gtag("config", googleAnalyticsId);

@@ -21,5 +21,6 @@ Glossary of canonical terms for michaelhuang.xyz. Glossary only — implementati
 ## Claims the copy may make
 
 - **Hero headline**: an explicit PM + builder claim (e.g. "Product Manager who builds technical products"). Never domain-first or builder-only.
+- **Contact channel**: LinkedIn is the primary contact CTA site-wide — copy "Connect on LinkedIn" (owner's LinkedIn is connections-only for messaging, so copy must not promise a direct message). Email stays published but only as visible address / footer icon, never a button CTA.
 - **Quantified outcome**: every Flagship carries at least one real, verifiable number. Fabricated metrics are forbidden; a Flagship without a number loses Flagship status.
 - **About page**: professional story, now/approach, contact CTA. Source of truth for career history: linkedin.com/in/mhuang74.
