@@ -23,7 +23,10 @@
     ul,
     figcaption,
     table,
-    code {
+    code,
+    dl,
+    dt,
+    dd {
       @apply text-foreground;
     }
 
