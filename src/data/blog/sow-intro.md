@@ -11,11 +11,11 @@ tags:
 description: Introducing a series on building Stream of Worship, a system for seamless Chinese worship music transitions
 ---
 
-Every Sunday, worship teams face a small but nagging problem: what happens _between_ the songs? Someone fumbles with a laptop, there's an awkward silence, the congregation settles out of the mood the last song built — and then the next song starts from a cold stop. For English-language worship there's no shortage of tools, but for Chinese worship music (中文敬拜詩歌), the catalog, the lyrics, even the audio sources live in scattered places with no tooling at all.
+Every Sunday, worship teams hit the same small, nagging problem: what happens _between_ the songs? Someone fumbles with a laptop, there's an awkward silence, the congregation drifts out of the mood the last song built, and then the next song starts from a cold stop. For English-language worship there's no shortage of tools. For Chinese worship music (中文敬拜詩歌) there's basically nothing — the catalog, the lyrics, even the audio sources live in scattered places with no tooling at all.
 
-[Stream of Worship](https://streamofworship.com) is my attempt to fix that: a system that analyzes songs (tempo, key, structure), strings them into smooth transitions, and renders ready-to-play audio and lyrics videos — so a worship leader can go from "here's my song list" to a seamless, offline-capable worship set.
+[Stream of Worship](https://streamofworship.com) is my attempt to fix that: a system that analyzes songs (tempo, key, structure), strings them into smooth transitions, and renders ready-to-play audio and lyric videos. A worship leader goes from "here's my song list" to a seamless, offline-capable set.
 
-This post kicks off a series on how it's built. Think of it as the map for what's coming.
+This post kicks off a series on how it's built.
 
 <!-- more -->
 
@@ -23,15 +23,15 @@ This post kicks off a series on how it's built. Think of it as the map for what'
 
 At its core, SOW answers one question: _given a set of Chinese worship songs, produce a single continuous playback where each song flows into the next without a hard stop._
 
-To get there, the system does four things:
+Four things get it there:
 
 1. **Builds the catalog.** A scraper pulls the song catalog (title, composer, lyricist, album, key, lyrics) from [Stream of Praise (讚美之泉)](https://www.sop.org/), audio is sourced and deduplicated by content hash, and everything lands in a shared PostgreSQL database with object storage (Cloudflare R2) holding the audio, stems, and rendered files.
 
-2. **Analyzes every recording.** A GPU-heavy analysis service runs structural analysis (beats, downbeats, section boundaries), key and tempo detection, and stem separation (vocals, drums, bass, other). It also generates time-synced lyrics through a fallback pipeline — YouTube transcripts first, then cloud ASR, then local Whisper — refined with LLM alignment and a forced aligner into LRC files.
+2. **Analyzes every recording.** A GPU-heavy analysis service runs structural analysis (beats, downbeats, section boundaries), key and tempo detection, and stem separation (vocals, drums, bass, other). It also generates time-synced lyrics through a fallback pipeline — YouTube transcripts first, then cloud ASR, then local Whisper — refined with LLM line alignment, with a forced-alignment job available as a second pass, into LRC files.
 
 3. **Plans the set.** Transitions between adjacent songs are judged on musical boundaries, not whole-song averages: the key a song _leaves through_ against the key the next one _arrives through_, boundary BPM, and an energy arc. Sets follow a fixed five-phase worship arc (讚美 → 感恩 → 敬拜 → 奉獻 → 差遣), and an agentic songset constructor does constrained search over the song pool to propose orderings that fit.
 
-4. **Renders and delivers.** A serverless render worker mixes the crossfaded multi-song audio (MP3) and encodes a synchronized lyrics video (MP4) with chapter markers. The web app provides the songset editor, render pipeline, playback controller with second-screen projection (Presentation API / Google Cast), lyric review, semantic search over the catalog, and offline playback via a service worker. There's also a native Android client.
+4. **Renders and delivers.** A serverless render worker mixes the crossfaded multi-song audio (MP3) and encodes a synchronized lyrics video (MP4) with chapter markers. The web app has the songset editor, the render pipeline, a playback controller with second-screen projection (Presentation API / Google Cast), lyric review, semantic search over the catalog, and offline playback via a service worker. There's a native Android client too.
 
 The end goals, straight from the project README:
 
@@ -53,19 +53,21 @@ What's still open: better transition quality (timbre as a compatibility factor, 
 
 ## The series
 
-Here's the plan for upcoming posts, roughly in pipeline order:
+Here's the plan for the posts, roughly in pipeline order:
 
-1. **Why seamless worship transitions are hard** — the problem space: what makes song-to-song flow musically difficult, why Chinese worship catalogs need special handling, and what "seamless" has to mean for it to feel right to a worship leader.
-2. **Building the catalog** — scraping sop.org, normalizing Chinese song IDs to pinyin, content-hash audio deduplication, and the shared Neon Postgres + R2 data layer every other component sits on.
-3. **The analysis pipeline** — structural analysis with All-In-One (tempo, beats, sections, embeddings), librosa key detection, Demucs stem separation, and the clean-vocals chain — plus why it all lives in a Dockerized FastAPI service with its own job queue.
-4. **Synced lyrics from messy sources** — the LRC generation pipeline: YouTube transcripts, DashScope Qwen3 ASR, and Whisper as fallbacks; LLM line alignment; forced-alignment refinement; and gap placeholders for long instrumental passages.
-5. **The transition engine** — crossfades, key shifting, tempo matching, and why boundary keys/BPM (exit component vs. entry component) beat whole-song averages for judging compatibility.
-6. **The songset constructor** — encoding worship-leading practice as code: the five-phase worship arc, theme classification via embedding anchors, energy arcs, hard constraints and the weighted fitness function.
-7. **The web app architecture** — Next.js on Vercel, Drizzle + Neon serverless, Better Auth, render jobs through SQS to Lambda, SSE progress, and second-screen projection.
-8. **Offline worship playback** — service workers, Cache Storage byte-range serving for 500 MB videos, the IndexedDB index that decides what's playable, and surviving a mid-service network drop.
-9. **Going native: the Android client** — Jetpack Compose over the webapp's JSON APIs, Media3 playback with chapters, and offline downloads via DownloadManager.
-10. **Retrospective** — what I'd do differently, what the POC got wrong that production got right, and where the roadmap goes next (timbre matching, smarter transition points, hybrid search).
+1. **[Why seamless worship transitions are hard](/posts/sow-why-transitions-are-hard)** — the problem space: what makes song-to-song flow musically difficult, why Chinese worship catalogs need special handling, and what "seamless" has to mean for it to feel right to a worship leader.
+2. **[Building the catalog](/posts/sow-catalog)** — scraping sop.org, turning Chinese song IDs into pinyin, content-hash audio deduplication, and the shared Neon Postgres + R2 data layer every other component sits on.
+3. **[The analysis pipeline](/posts/sow-analysis-pipeline)** — structural analysis with All-In-One (tempo, beats, sections, embeddings), librosa key detection, Demucs stem separation, and the clean-vocals chain, plus why all of it lives in a Dockerized FastAPI service with its own job queue.
+4. **[Synced lyrics from messy sources](/posts/sow-lyrics-pipeline)** — YouTube transcripts, DashScope Qwen3 ASR, and Whisper as fallbacks; LLM line alignment; a forced-alignment second pass; and gap placeholders for long instrumental passages.
+5. **[The transition engine](/posts/sow-transition-engine)** — crossfades, beat-aligned gaps, and why boundary keys and BPM (exit component vs. entry component) beat whole-song averages for judging compatibility, plus where key shifting and tempo matching fit in.
+6. **[The songset constructor](/posts/sow-songset-constructor)** — encoding worship-leading practice as code: the five-phase arc, theme classification via embedding anchors, energy arcs, hard constraints, and the weighted fitness function.
+7. **[The web app architecture](/posts/sow-webapp-architecture)** — Next.js on Vercel, Drizzle + Neon serverless, Better Auth, render jobs through SQS to Lambda, 10-second progress polling, and second-screen projection.
+8. **[Offline worship playback](/posts/sow-offline-playback)** — service workers, Cache Storage byte-range serving for 500 MB videos, the IndexedDB index that decides what's playable, and surviving a mid-service network drop.
+9. **[Going native: the Android client](/posts/sow-android-client)** — Jetpack Compose over the webapp's JSON APIs, Media3 playback with chapters, and offline downloads via DownloadManager.
+10. **[Ten build phases: what Stream of Worship taught me](/posts/sow-retrospective)** — what I'd do differently, what the POC got wrong that production got right, and where the roadmap goes next (timbre matching, smarter transition points, hybrid search).
 
-Most posts will be grounded in the actual repo — real pipelines, real failure modes, real tradeoffs. If any of this sounds like your problem too, the code is open source and the [user guide](https://streamofworship.com) covers the worship-leader workflow.
+Already published: **[Detector 2.0.0: catching bad Chinese worship lyrics](/posts/lrc-detector-2-0-0)** — a 43-feature detector for bad timed lyrics.
 
-Next up: **why seamless worship transitions are hard**.
+Most posts stick to what's actually in the repo: the pipelines, the things that broke, and the numbers I can defend. If any of this sounds like your problem too, the code is open source and the [user guide](https://streamofworship.com) covers the worship-leader workflow.
+
+Next up: **[why seamless worship transitions are hard](/posts/sow-why-transitions-are-hard)**.
