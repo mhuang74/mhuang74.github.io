@@ -14,6 +14,8 @@ Have you ever been on a video call when your cat walks across your keyboard, sen
 
 <!-- more -->
 
+**Update (October 2026):** HandsOff now ships as a menu-bar app only. The CLI, PKG installer, and encrypted-config format described below are gone. For how the app was built and debugged, see [what building HandsOff taught me about steering coding agents](/posts/handsoff-steering-coding-agents).
+
 ## The Problem
 
 Modern work often requires leaving your laptop open and running while you step away or during video calls. But this creates several risky situations:
@@ -33,10 +35,10 @@ HandsOff uses macOS's CoreGraphics event tap system to intercept and block keybo
 
 - **Complete Input Blocking**: All keyboard, trackpad, and mouse inputs are blocked while the screen remains visible
 - **Secure Unlocking**: Unlock by typing your passphrase (even though you can't see the input)
-- **Auto-Lock**: Automatically locks after 30 seconds of inactivity (configurable)
+- **Auto-Lock**: Automatically locks after 180 seconds of inactivity (configurable, 20–600 s)
 - **Talk Hotkey**: Press `Ctrl+Cmd+Shift+T` when locked to pass through a spacebar press for unmuting in video calls
 - **Microphone & Camera**: Video conferencing apps continue to work normally - the lock only affects input devices
-- **Two Modes**: Native menu bar app (recommended) or CLI for advanced users
+- **One mode**: native menu bar app; the CLI was removed in v0.9.0
 
 ## Major Use Cases
 
@@ -67,49 +69,37 @@ Need to step away but want to keep monitoring something?
 - Watch video conferences continue while you grab coffee
 - Protect against accidental touches in public spaces
 
-### 4. SSH Remote Access Safety
+### 4. Long-running builds and agent sessions
 
-Use HandsOff CLI via SSH to remotely lock a laptop while keeping the screen viewable for others in the room. If needed, SSH back in to unlock or reconfigure.
+Lock input while a coding agent runs tests or a build. The screen stays readable, so you can watch the output land, and accidental keystrokes cannot interrupt the session.
 
 ## Getting Started
 
-HandsOff is available in two forms:
+HandsOff ships as an ad-hoc signed DMG:
 
-### Menu Bar App (Recommended)
+### Menu Bar App
 
-The native macOS menu bar application provides the best user experience:
+1. Download the arm64 or x86_64 DMG from [GitHub Releases](https://github.com/mhuang74/handsoff-rs/releases)
+2. Drag `HandsOff.app` to `/Applications`
+3. Right-click → Open on first launch, then confirm the Gatekeeper prompt
+4. Grant Accessibility permissions in System Settings
+5. The Setup Wizard opens automatically on first run
 
-1. Download the PKG installer from [GitHub Releases](https://github.com/mhuang74/handsoff-rs/releases)
-2. Run the installer (installs to `~/Applications/HandsOff.app`)
-3. Grant Accessibility permissions in System Settings
-4. Run setup to configure your passphrase:
-   ```bash
-   ~/Applications/HandsOff.app/Contents/MacOS/handsoff-tray --setup
-   ```
-5. Start the app: `launchctl start com.handsoff.inputlock`
+The menu bar icon is red when locked. The menu is Lock Input, Preferences…, Change Passphrase…, Reset…, Fix Accessibility Permission…, Check for Updates…, Help, Quit. All mouse clicks are blocked while locked, so unlocking is passphrase-only.
 
-The menu bar icon shows your lock status (red when locked) and provides quick access to lock, disable, or reset.
-
-### CLI (Advanced Users)
-
-For terminal enthusiasts or remote usage:
-
-1. Download the CLI tarball from [GitHub Releases](https://github.com/mhuang74/handsoff-rs/releases)
-2. Extract and install: `sudo mv handsoff /usr/local/bin/`
-3. Run setup: `handsoff --setup`
-4. Start: `handsoff`
-
-The CLI provides more control over configuration and is perfect for remote/headless usage via SSH.
+Build from source following `DEVELOPER.md`; there is no CLI binary.
 
 ## Security
 
 HandsOff takes security seriously:
 
-- Passphrases stored encrypted using AES-256-GCM
+- Passphrase stored as a SHA-256 hash of the physical keycode sequence (layout-independent, no plaintext on disk)
 - Config file readable only by your user account (600 permissions)
 - No network connections or telemetry
 - All data stays local on your device
-- Auto-unlock safety timeout option to prevent permanent lockouts
+- Auto-unlock enabled by default: 60 min, doubling to 24 h; only a successful passphrase unlock resets it
+
+HandsOff guards against casual interference, not a determined local actor who can reboot, kill the app, or take the machine.
 
 ## Built with Rust
 
@@ -119,8 +109,8 @@ The project is open source and available on [GitHub](https://github.com/mhuang74
 
 ---
 
-**Requirements**: macOS 10.11 (El Capitan) or later
+**Requirements**: macOS 13 (Ventura) or later
 
-**Tested on**: MBA M2 with macOS 15.7 (Sequoia)
+**Tested on**: MacBook Air M2, macOS 15.7/15.8
 
 **License**: See LICENSE file on GitHub

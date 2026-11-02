@@ -15,7 +15,7 @@ Before Marin: underwriting automation at Trilogy, trade-processing tooling at Me
 
 ## What I'm doing now
 
-These days I split my time between product work and hands-on building. The three projects featured on this site — a worship-music rendering platform, a Rust CLI for Google Ads, and an LLM analyst for ad accounts — are the clearest examples of how I work: pick a real problem, design the product around the user's constraints, then ship the code, the infrastructure, and the evaluation loop that proves it works. I write about the interesting parts as I go.
+These days I split my time between product work and hands-on building. The four projects featured on this site — a worship-music rendering platform, a Rust CLI for Google Ads, an LLM analyst for ad accounts, and a macOS input locker — are the clearest examples of how I work: pick a real problem, design the product around the user's constraints, then ship the code, the infrastructure, and the evaluation loop that proves it works. I write about the interesting parts as I go.
 
 ## Get in touch
 
