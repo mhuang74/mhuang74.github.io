@@ -4,7 +4,7 @@ Glossary of canonical terms for michaelhuang.xyz. Glossary only — implementati
 
 ## Positioning
 
-- **Positioning**: the site's single communicated identity — *a professional Product Manager with deep, hands-on technical abilities and an eye for design*. Every page decision is judged against whether it reinforces this.
+- **Positioning**: the site's single communicated identity — *a professional Product Engineer: a player-coach who works directly with customers and ships the software he manages*. Every page decision is judged against whether it reinforces this.
 - **Tone**: *warm professional* — conversational first-person copy. Not corporate-formal; not hacker-quirky. Emoji appear only as content (e.g. inside a blog post), never as UI decoration.
 - **Eye for design**: demonstrated by the site itself, never claimed in copy.
 
@@ -20,7 +20,7 @@ Glossary of canonical terms for michaelhuang.xyz. Glossary only — implementati
 
 ## Claims the copy may make
 
-- **Hero headline**: an explicit PM + builder claim (e.g. "Product Manager who builds technical products"). Never domain-first or builder-only.
+- **Hero headline**: an explicit product-engineering claim — product ownership plus hands-on shipping, e.g. "A Player-Coach who understands customers and ships the software he manages." Never domain-first or builder-only.
 - **Contact channel**: LinkedIn is the primary contact CTA site-wide — copy "Connect on LinkedIn" (owner's LinkedIn is connections-only for messaging, so copy must not promise a direct message). Email stays published but only as visible address / footer icon, never a button CTA.
 - **Quantified outcome**: every Flagship carries at least one real, verifiable number. Fabricated metrics are forbidden; a Flagship without a number loses Flagship status.
 - **About page**: professional story, now/approach, contact CTA. Source of truth for career history: linkedin.com/in/mhuang74.
