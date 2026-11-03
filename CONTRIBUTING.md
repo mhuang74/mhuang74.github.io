@@ -186,11 +186,9 @@ The fixed pages — landing, about, work index, writing index — are not collec
 The hero is plain JSX, so edit the text in the elements themselves:
 
 ```astro
-<p class="font-mono text-xs tracking-widest text-accent uppercase sm:text-sm">
-  Product Manager · Builder
-</p>
-<h1 class="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
-  Product Manager who builds technical products end to end.
+<p class="eyebrow">Product Engineer · Builder</p>
+<h1>
+  A Player-Coach who understands customers and ships the software he manages.
 </h1>
 ```
 
