@@ -8,36 +8,44 @@ tags:
   - rust
   - macos
   - building
-description: "A macOS input locker built so a coding agent's progress stays readable with a toddler at the keyboard, plus three runtime failures that only showed up on the machine."
+description: "I built a macOS input locker so I can watch my coding agent work with kids in the house. Three bugs only showed up on the machine, and they changed how I steer agents."
 ---
 
-The reason I wrote HandsOff is narrow. Coding agents run long builds and long test suites, and I want to read the screen while they run. I have a toddler. Screen lock and the screensaver hide the screen, which defeats the whole point of watching, so I kept leaving the machine open and kept losing work to small hands on the keyboard.
+I built HandsOff for one reason. Coding agents can now run long tasks, and I want to read the screen while they run. Screen lock hides the screen, which defeats the point of watching. So I kept the machine open, and I lost work to small curious hands on the keyboard. My youngest was in kindergarten then.
 
-[HandsOff](https://github.com/mhuang74/handsoff-rs) blocks the keyboard, trackpad, and mouse at the system level while leaving the display fully visible, and you unlock by typing a passphrase blind, with no echo and no cursor. The threat model is spelled out in the [README](https://github.com/mhuang74/handsoff-rs/blob/main/README.md): it guards against casual interference, a child, a colleague, or the audience of a screenshare. It isn't a barrier against a determined local actor, who can reboot the machine, kill the app, or simply carry the laptop away. That framing decided everything downstream. For a tool whose job is blocking input, a bug that leaves input blocked is worse than the problem it solves, so the fail-closed path had to be designed before the happy path.
+[HandsOff](https://github.com/mhuang74/handsoff-rs) blocks the keyboard, trackpad, and mouse at the system level. The display stays visible. You unlock by typing a passphrase blind. No echo, no cursor. It guards against casual interference: a kid at the keyboard, a colleague, the audience of a screenshare. A determined attacker reboots the machine or walks off with the laptop, so it's more of a simple luggage combo lock than a sophisticated vault lock. 
 
-**What shipped**
+That framing drove the design. For a tool that blocks input, a bug that locks the keyboard and won't let go is immediate fail. So I left open an auto-unlock fail-safe rather than guaranteeding the lock to be super strong. Ergonomics over unnecessary features.
 
-HandsOff is a native menu-bar app for macOS 13 and later, written in Rust, sitting on a CoreGraphics event tap. There is a Setup Wizard on first run, a global hotkey for lock and another for Talk, auto-lock at 180 seconds by default, and auto-unlock that opens a window at 60 minutes and doubles from there up to 24 hours, reset only by a real passphrase unlock. The passphrase is stored as a SHA-256 hash over the physical keycode sequence, so it is layout-independent and nothing readable sits on disk.
+## What it does
 
-The project reached v0.10.0 through 167 commits, 19 tagged releases, 140 tests, 22 specs, and 5 ADRs. The first agent-authored commit in the history is titled "first rev from Claude". Everything after it came out of a loop where I wrote specs and the agent wrote code, and the machine decided which of us was right.
+HandsOff is a native menu-bar app for macOS 13 and later, written in Rust. A system hook intercepts every keystroke. You get a setup wizard on first run, a global hotkey to lock, auto-lock at 180 seconds by default, and auto-unlock that opens a window at 60 minutes and doubles from there up to 24 hours. Only a real passphrase unlock resets it.
 
-**The part the code can't tell you**
+The app stores your passphrase as a one-way hash of the physical keycodes you press. That works with any keyboard layout, and nothing readable touches disk.
 
-An agent can read every line in this repo and still be wrong about what the process does. That isn't a knock on the reading. It's the shape of the problem. Here the agents could run commands and read logs, which covers a lot of ground.
+Though I've created Rust CLI and libraries before, I've not done system-level programming, and especially not GUI related tools on MacOS. This was my first fully vibe-coded project. I wrote specs, the agent wrote code, and the machine decided who was right.
 
-What they couldn't do was look at the screen, click a button, or watch a core count. The repo's [AGENTS.md](https://github.com/mhuang74/handsoff-rs/blob/main/AGENTS.md) says it plainly: macOS TCC denies agents window screenshots and synthetic clicks, so no menu automation through System Events. Accessibility grants bind to the resolved binary path, which means a debug build in `target/debug` can't be granted in place at all. Verification of the GUI and TCC paths is human-run by construction, not by anyone's policy preference. So the bugs that mattered lived in the part of the loop I own, and the agent's job was to make my part cheap.
+## What the agent can't see
 
-**A 500 ms sleep that never slept**
+Handsoff worked well enough for me to use, but for a long time, not stable enough for me to share with people. An agent can read the code, but not understand the system instability I see through mouse cursor stutters and millisecond typing delays.
 
-The static review found a dead background thread and priced it at 2 wakeups per second (`specs/deep-design-review-2026-09.md`, finding P-4). Deletion was the right call, and the review said so. The price was wrong by orders of magnitude.
+So the bugs that mattered showed up enough times for me to see a pattern and raise suspicision, and as the model got smarter over the months, the agent finally used my problem description to disset the problem, collaborated with me to gather more run-time data, and solved the root cause hidden beneath layers of slop written by earlier models.
 
-Activity Monitor showed `handsoff-tray` at about 100% of one core, steady, whether or not I touched the machine. A 5 second `sample` of the live release binary, 3,737 samples at 1 ms, put 2,999 of them in `start_cfrunloop_thread`. The main thread was parked in `mach_msg` inside `[NSApplication run]`, which is where it belongs, because that is the loop servicing the event tap.
+## The sleep that never slept
+
+It started as system slowness after running HandsOff for weeks. So I asked agent to introduce a Suspend Mode to minimize polling and thus CPU usage. The sleep-then-check loop got inserted at this point, but de-generated into a source of CPU drain after further optimizations along the way. Slop bug.
+
+Static review found a dead background thread and priced it at 2 wakeups per second. Deleting it was the right call. The price was wrong by about 10,000 times.
+
+Activity Monitor showed `handsoff-tray` pinned at a full core whether I touched the machine or not. Sampling the live release binary put nearly all its time in that thread. The main thread sat asleep.
+
+The loop, verbatim:
 
 ```rust
 loop {
     let result = unsafe {
         CFRunLoop::run_in_mode(kCFRunLoopDefaultMode,
-                               Duration::from_millis(CFRUNLOOP_POLL_INTERVAL_MS), // 500 ms
+                               Duration::from_millis(500), // "sleep" half a second
                                false)
     };
     if shutdown_rx.try_recv().is_ok() { break; }
@@ -45,43 +53,42 @@ loop {
 }
 ```
 
-| Thread                     | Samples busy |
-| -------------------------- | ------------ |
-| main (`NSApplication run`) | 2 / 3737     |
-| `start_cfrunloop_thread`   | 2999 / 3737  |
+It's ironic that the intended design had opposite results at run-time. The app asked the system to wait half a second before checking again. With nothing to wait on, the run loop answers instantly. So the thread asked again, and again, as fast as the CPU allowed. The comment said "run the loop for 0.5 seconds". Nobody tested that sentence.
 
-The root cause is in [`specs/cpu-spin-cfrunloop-thread-2026-10.md`](https://github.com/mhuang74/handsoff-rs/blob/main/specs/cpu-spin-cfrunloop-thread-2026-10.md). `CFRunLoopRunInMode` returns `kCFRunLoopRunFinished` immediately when the run loop has no sources in the mode. It doesn't honor the duration as a sleep. The thread's run loop owned zero sources, since the tap attaches its source to the main thread's loop, so every iteration returned at once and the loop called it again as fast as the CPU allowed. The code comment said "run the loop for 0.5 seconds" and nobody had tested the sentence.
+The fix deleted the thread. Deleting it also killed the reason for a "minimal CPU mode" menu pair, so those went too. The agent got the direction right and the size wrong. A measurement corrected it. No amount of reading finds that bug.
 
-The fix was to delete the thread, v0.9.1, PR #46. Deleting the spin also removed the only rationale for the Disable/Reenable menu pair, which was a "minimal CPU mode" flag, so those went too in v0.10.0 (PR #47, ADR 0005). The agent was directionally right and off by four orders of magnitude. The correction came from a measurement, not from reading the code harder.
+## The button that always said no
 
-**The button that always cancelled**
+After an update replaces the app file, the macOS permission screen still shows the old entry lit up while both real checks fail. The wizard waits on "grant" forever. So I added a Reset Permission & Restart button.
 
-The stale-TCC escape hatch existed for a specific wall: after an update replaces the ad-hoc signed binary, the old Accessibility row stays lit in System Settings while both real checks fail, and the wizard waits on "grant" forever. So the wizard offered a Reset Permission & Restart button.
+The button never worked. The code compared the dialog's answer against the wrong constant. It checked for 1. The first button returns 1000. The branch never fired, and clicking always cancelled.
 
-The code compared `alert.runModal()` against `NSModalResponseOK`, which is 1. NSAlert buttons do not return 1. The first returns 1000 (`NSAlertFirstButtonReturn`) and the second 1001, so the branch never fired and the button always cancelled. It compiled, it read correctly, and it shipped. Only a click proved it, and the click was mine to run.
+It compiled. It read correctly. It shipped. Only a click exposed it, and the click was mine to run. No amount of review catches this, because nothing in the diff looks wrong.
 
-The fix compares against `NSAlertFirstButtonReturn` and landed in v0.9.0. The general lesson is that framework return-value semantics are runtime facts. Reviewing that diff harder wouldn't have found it, because nothing in it was wrong in a way reading can see.
+## The lock that locked me out
 
-**The lock that locked the user out**
+This one was serious, but broke the Installation wizard and not the core tool. The wizard used to listen for your passphrase the moment permission came through. That listener swallows every keystroke on the machine, which is its job. Except nothing on screen said it was happening, and it stayed that way for up to 300 seconds. Quit and relaunch, and the wizard does it again.
 
-The setup wizard used to start the passphrase-capture tap the moment Accessibility was granted. That tap swallows every keydown system-wide, which is exactly its job, except nothing on screen said so and the timeout was 300 seconds. Every relaunch repeated it, because the wizard opens again. On the day I chased it, 16 stacked wizard launches were observed, each holding its own swallow tap. That's the failure I said at the top I couldn't tolerate, committed by the tool built to prevent it.
+The afternoon I chased this down, I counted 16 stacked wizard launches. Each one held the keyboard hostage. The tool I built to prevent that failure committed it.
 
-The fix is architectural rather than cosmetic. Capture starts only when you click **Capture Passphrase**, is bounded to 120 seconds with a visible countdown, and aborts within one 100 ms pump slice when the window closes. A single-instance `flock` keeps a second tray from ever stacking on the first. Then the policy call, in ADR 0005: runtime permission revocation now unlocks, shows one notification, and quits, so a broken permission state releases input instead of holding it hostage.
+The fix touched the design, not the cosmetics. Capture starts only when you click the Capture Passphrase button. It runs at most 120 seconds with a countdown on screen, and it stops within a tenth of a second when you close the window. A lock file keeps a second copy off the first. The policy changed too: if the permission breaks while the app runs, it unlocks, shows one notification, and quits. A broken permission releases the keyboard. It never holds it hostage.
 
-Write down the failure you cannot tolerate before writing the code. It changes the design, not just the test list. Mine was "never leave input blocked", and every obsolete feature after it, including Disable/Reenable, fell out of taking that sentence seriously.
+Write down the failure you cannot accept before you write the code. It shapes the design, not just the test list. Mine was "never leave input blocked". Half the dead features fell out of taking that sentence seriously.
 
-**How I steer**
+## How I steer the agent now
 
-**Define the failure first.** The unacceptable outcome goes in the spec as a sentence, not as an implication of the architecture.
+A few takeaways.
 
-**Turn runtime claims into acceptance criteria.** Name the command and the number: `sample handsoff-tray 5`, an idle CPU target, "no `start_cfrunloop_thread` thread on top of the sample", lock then type then unlock.
+Define the failure first. Put the unacceptable outcome in the spec as a sentence, not as an implication.
 
-**Feed back observations, not opinions.** The agent gets sample output, log lines, and exact return codes in a form it can read. "It feels slow" isn't a bug report, and "the modal probably returns something else" wasn't a fix until it was 1000.
+Turn runtime claims into acceptance criteria. Name the command and the number: `sample handsoff-tray 5`, an idle CPU target, lock then type then unlock.
 
-**Keep the human steps explicit.** The CPU spec names the on-device steps because agent GUI verification is blocked, and the setup wizard notes which flows need a release build in the TCC-approved path. Anything I leave implicit comes back as a stalled agent.
+Feed the agent observations, not opinions. Sample output, log lines, exact return codes. "It feels slow" is not a bug report. "The dialog probably returns something else" was not a fix until we knew the real number.
 
-**Correct the model, not just the patch.** The interception hang assessment first scored the tap teardown as a HIGH wrong-runloop use-after-free. Verification of the call graph, that add and remove both use `CFRunLoop::get_current()` from the main thread, disproved it and downgraded the finding to LOW (`docs/assessment-interception-hang-risk-2026-10.md`, revision note). Getting the mental model right was worth more than any single patch in that document.
+Keep the human steps explicit. Anything you leave implicit about on-device verification comes back as a stalled agent.
 
-For engineers, the honest accounting is that agents compress implementation and hardly touch problem definition. Mine read every line here and still needed a `sample` to learn what the process was doing. For hiring managers, the deliverable is not the app. It is the app plus the loop that got it there: written specs, measurable acceptance criteria, and the discipline to go run the thing.
+Question the model assumptions, not just review the PR. One review flagged a high crash risk in the input-hook teardown. Walking the real call graph killed it. The feared chain never happens. Getting the mental model right beat any patch in that review.
 
-Source and releases are at [mhuang74/handsoff-rs](https://github.com/mhuang74/handsoff-rs) and its [releases page](https://github.com/mhuang74/handsoff-rs/releases). For install instructions, the [product post](/posts/handsoff) is still the one to read.
+My youngest is past kindergarten now. The keyboard is safer. HandsOff still earns its keep each time a kid wanders over to "help". The agent did nearly all of the typing, and it typed fast. Deciding what "broken" means, writing it down, and running the thing to see who was right: that part stayed with me. It stays with whoever holds the keyboard.
+
+Source is at [mhuang74/handsoff-rs](https://github.com/mhuang74/handsoff-rs). Install instructions live in the [product post](/posts/handsoff).
