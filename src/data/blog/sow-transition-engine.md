@@ -12,9 +12,9 @@ tags:
 description: "Crossfades, beat-aligned gaps, and boundary keys: why transition quality gets judged at the seam instead of on whole-song averages."
 ---
 
-Two songs can both be excellent and still refuse to sit next to each other. A transition is not a property of either song. It is a property of a pair of songs at a specific point in time.
+Two songs can both be excellent and still refuse to sit next to each other. A transition isn't a property of either song. It's a property of a pair of songs at a specific point in time.
 
-Most music tools describe a song with one number per attribute. One tempo, one key, one loudness. That is fine for browsing a library and useless for joining two tracks. The two ends of a song are usually not its average.
+Most music tools describe a song with one number per attribute. One tempo, one key, one loudness. That's fine for browsing a library and useless for joining two tracks. The two ends of a song are usually not its average.
 
 This engine follows one rule. Score the exit of the first song against the entry of the second. Pick a technique that fits what you find there.
 
@@ -26,11 +26,11 @@ This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Sync
 
 Three questions sit between "the songs are analyzed" and "the songs can be joined".
 
-Which key. A song can have one key in the catalog and different keys from analysis at the component level. Comparing a component-level exit key to a song-level entry key compares two different kinds of estimate. That is not a small error. It is a category error.
+Which key. A song can have one key in the catalog and different keys from analysis at the component level. Comparing a component-level exit key to a song-level entry key compares two different kinds of estimate. That's not a small error. It's a category error.
 
 Which tempo. Tempo drives gap length in beats. A wrong boundary tempo makes the gap musically wrong and audibly so.
 
-Which technique. Harmonic distance alone does not decide the transition. Some pairs want a crossfade, some want a gap, and a constant method applied everywhere is a decision to stop deciding.
+Which technique. Harmonic distance alone doesn't decide the transition. Some pairs want a crossfade, some want a gap, and a constant method applied everywhere is a decision to stop deciding.
 
 ## What I built
 
@@ -44,9 +44,9 @@ That range asymmetry is intentional. The preview endpoint is for auditioning, an
 
 Component rows carry a role. Entry, exit, both, and none. Aggregation reads entry from rows marked entry and exit from rows marked exit.
 
-The rule is simple: keys never mix provenance within a pair. If both sides have component keys, the pair is scored on component keys. Otherwise both sides fall back to song-level keys. One side component and one side song-level is never allowed.
+The rule is simple: keys never mix provenance within a pair. If both sides have component keys, the pair gets scored on component keys. Otherwise both sides fall back to song-level keys. One side component and one side song-level is never allowed.
 
-Tempo is per side. Each side falls back to its song-level tempo independently, with a warning that names the song. The asymmetry is intentional. Mixed key provenance is meaningless. Mixed tempo provenance is only less precise.
+Tempo is per side. Each side falls back to its song-level tempo independently, with a warning that names the song. The asymmetry is intentional. Mix key provenance and the answer is meaningless; mix tempo provenance and it's only less precise. So one gets banned and the other gets a warning.
 
 ### Harmonic compatibility
 
@@ -60,23 +60,23 @@ The engine suggests a transposition by searching the few nearest semitone shifts
 
 Distance and shift select a technique. Close relationships get a short gap and no crossfade, because the songs already agree and a crossfade smears two different grooves. Distant relationships get longer crossfades and longer gaps, because the listener needs time to be moved.
 
-The order matters. Transposition is checked before the vamp branch. A pair that a single semitone fixes gets scored as a transposition, not a vamp. Cheaper remedy first.
+The order matters. Transposition is checked before the vamp branch. A pair that a single semitone fixes gets scored as a transposition, not a vamp, because the cheaper remedy wins.
 
 ### Render math
 
 The render worker converts beats into milliseconds at the boundary tempo. A two beat gap at 140 BPM is shorter than a two beat gap at 90 BPM. Same musical instruction, different clock time.
 
-A crossfade zeroes the gap, because silence and overlap do not coexist. Segment placement is previous end plus gap minus crossfade. Each segment gets a fade in and a fade out. The result is loudness normalized to a consistent target.
+A crossfade zeroes the gap, because silence and overlap don't coexist. Segment placement is previous end plus gap minus crossfade. Each segment gets a fade in and a fade out. The result is loudness normalized to a consistent target.
 
 ## The part that is intent, not signal
 
-Key shift and tempo ratio are persisted, editable, and displayed in the UI. The render worker applies neither. There is no pitch-shift filter, no resampling filter, and no time-stretch filter anywhere in the render worker.
+Key shift and tempo ratio are persisted, editable, and displayed in the UI. The render worker applies neither. There's no pitch-shift filter, no resampling filter, and no time-stretch filter anywhere in the render worker.
 
-That is the single most misleading thing in the product surface. A parameter that looks like a knob, persists like a knob, and does nothing.
+That's the single most misleading thing in the product surface. A parameter that looks like a knob, persists like a knob, and does nothing.
 
-The reasons are simple. Pitch-shifting a vocal without formant correction sounds wrong. Time-stretching changes the groove in the recording. Both are things a musician hears immediately. There is no A/B harness to tell me whether a shift improves a transition or just changes it.
+The reasons are simple. Pitch-shifting a vocal without formant correction sounds wrong. Time-stretching changes the groove in the recording. Both are things a musician hears immediately. There's no A/B harness to tell me whether a shift improves a transition or just changes it.
 
-So the engine recommends a transposition and records it. A human is expected to act on it. The shipped system does not do it automatically.
+So the engine recommends a transposition and records it. A human is expected to act on it. The shipped system doesn't do it automatically.
 
 ## Design doc versus shipped path
 
@@ -92,13 +92,13 @@ A missing boundary tempo silently produced a wrong gap. The render still succeed
 
 The preview endpoint and the editor disagreed about crossfade range. A value saved from a script rendered fine and was unrepresentable in the UI. Two surfaces validating the same field with different ranges is a bug waiting for the first power user.
 
-The unused parameter problem is still the one I would undo first.
+The unused parameter problem is still the one I'd undo first.
 
 ## What I would do differently
 
-Never persist a parameter the renderer does not consume. Either wire it to a filter or keep it out of the UI.
+Never persist a parameter the renderer doesn't consume. Either wire it to a filter or keep it out of the UI.
 
-Build the seam A/B harness before adding any DSP. The reason transposition and tempo matching stalled is that there is no instrument to tell whether a shift improves a transition.
+Build the seam A/B harness before adding any DSP. The reason transposition and tempo matching stalled is that there's no instrument to tell whether a shift improves a transition.
 
 Measure transition acceptance as a rate, not a score. Every number in the algorithm is a property of the algorithm, not the listening experience.
 

@@ -12,9 +12,9 @@ tags:
 description: "A native Android client over the webapp APIs, with offline downloads and playback that survives a dead screen."
 ---
 
-There is a version of this story where the Android app is an afterthought: a WebView pointed at the web app, wrapped in an icon. That version fails in the one place that matters: a phone driving a projector over HDMI, with no browser chrome, no URL bar, and a screen that must not go to sleep mid-song.
+There's a version of this story where the Android app is an afterthought: a WebView pointed at the web app, wrapped in an icon. That version fails in the one place that matters: a phone driving a projector over HDMI, with no browser chrome, no URL bar, and a screen that must not go to sleep mid-song.
 
-So the Android client is native. It is also deliberately not a second backend. Every byte it fetches comes from the same JSON APIs and the same signed URLs the web app uses. That constraint turns the Android app into a contract test. Any place where the API is only accidentally web-friendly shows up immediately on a device.
+So the Android client is native. It's also deliberately not a second backend. Every byte it fetches comes from the same JSON APIs and the same signed URLs the web app uses. That constraint turns the Android app into a contract test. Any place where the API is only accidentally web-friendly shows up immediately on a device.
 
 This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Offline worship playback](/posts/sow-offline-playback). Next: [Ten build phases](/posts/sow-retrospective).
 
@@ -24,7 +24,7 @@ This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Offl
 
 Four mobile-specific constraints have no analogue in the browser.
 
-Cookies without a cookie store. The API authenticates with a session cookie, and the browser manages it automatically. OkHttp does not, and the cookie is host-scoped, so a session minted against one URL is invisible to the same app pointed at a different one.
+Cookies without a cookie store. The API authenticates with a session cookie, and the browser manages it automatically. OkHttp doesn't, and the cookie is host-scoped, so a session minted against one URL is invisible to the same app pointed at a different one.
 
 A media stack that has to survive the screen turning off. Video with the screen off, audio in the background, and a lock screen showing what is playing are platform concerns a web player handles inconsistently.
 
@@ -36,13 +36,13 @@ A device clock that lies. Presigned URLs expire on the server's schedule, and a 
 
 ### Auth
 
-The session persists across process death, encrypted. A stray unauthorized response during startup does not overwrite a state the app is still resolving.
+The session persists across process death, encrypted. A stray unauthorized response during startup doesn't overwrite a state the app is still resolving.
 
-The host-mismatch problem is the top support issue, and it is not a code bug. Cookies minted for one host are not sent to another. The app documents the emulator-versus-device matrix, but cannot make the failure self-explanatory when it happens.
+The host-mismatch problem is the top support issue, and it's not a code bug. Cookies minted for one host aren't sent to another. The app documents the emulator-versus-device matrix, but can't make the failure self-explanatory when it happens.
 
 ### Playback
 
-Playback is in-process, with the CPU and network kept alive while the screen is off, and audio pausing when headphones get unplugged. There is a service for audio-only lock-screen controls, and the video screen drives the player directly. A second, non-functional playback path is exactly the kind of thing that misleads the next reader.
+Playback is in-process, with the CPU and network kept alive while the screen is off, and audio pausing when headphones get unplugged. There's a service for audio-only lock-screen controls, and the video screen drives the player directly. A second, non-functional playback path is exactly the kind of thing that misleads the next reader.
 
 Rotation re-binds the player controller after the activity is recreated. The surviving view model holds a reference to a controller whose player has been released, and commands to a released player do nothing, so the UI looks alive and the transport is dead.
 
@@ -70,18 +70,18 @@ Cookie host mismatch is the single most common support issue, and the one with t
 
 A released player answers commands without playing anything. Re-binding the controller fixed it, and the interesting part is that no API told me the player was gone.
 
-Some devices fall back to a software decoder that cannot keep up with the stream. The client detects the software-decoder case and warns instead of showing a stutter.
+Some devices fall back to a software decoder that can't keep up with the stream. The client detects the software-decoder case and warns instead of showing a stutter.
 
 A half-written metadata file used to fail the launch. Atomic writes fixed that.
 
-The test infrastructure was harder than the tests. Platform boundaries had to be pulled apart before any of them could run, and the coverage exclusions name the classes that cannot run on the JVM.
+The test infrastructure was harder than the tests. Platform boundaries had to be pulled apart before any of them could run, and the coverage exclusions name the classes that can't run on the JVM.
 
 ## What I would do differently
 
 Generate the API client from a schema. Hand-written transfer objects turn every server-side rename into a device-side runtime failure.
 
-Run the cookie/origin matrix on a physical device first. The emulator-to-LAN host change is the most common way to lose an hour and cannot be caught by JVM tests.
+Run the cookie/origin matrix on a physical device first. The emulator-to-LAN host change is the most common way to lose an hour and can't be caught by JVM tests.
 
-Put release signing in CI before calling it shipped. The app builds and runs and passes tests, but there is no signing config, so it cannot be distributed outside local testing.
+Put release signing in CI before calling it shipped. The app builds and runs and passes tests, but there's no signing config, so it can't be distributed outside local testing.
 
 Delete the unused service or finish it. An unused service is a maintenance liability.

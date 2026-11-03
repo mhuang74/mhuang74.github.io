@@ -14,9 +14,7 @@ description: "Scraping one HTML table into a stable catalog, deduplicating audio
 
 Every downstream feature in Stream of Worship assumes a song is a stable, addressable thing. The transition engine keys its matrix on song IDs. The set constructor partitions the pool by themes attached to song IDs. The render worker embeds song IDs in chapter markers. Offline downloads cache by render job, and the render job points at songs.
 
-If a song's identity shifts, all of that degrades quietly. Cached analyses key off a hash that no longer matches a row. A set built last week references a song that "does not exist".
-
-Identity is the load-bearing wall. I built it third, after the schema and the scraper. That ordering cost me a migration.
+If a song's identity shifts, all of that degrades quietly. Cached analyses key off a hash that no longer matches a row. A set built last week references a song that "does not exist". So identity has to be stable above everything else, and I built it third, after the schema and the scraper. That ordering cost me a migration.
 
 This post is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Why seamless worship transitions are hard](/posts/sow-why-transitions-are-hard). Next: [The analysis pipeline](/posts/sow-analysis-pipeline).
 
@@ -24,11 +22,11 @@ This post is part of [Stream of Worship, a series](/posts/sow-intro). Previous: 
 
 ## The problem
 
-There is no Chinese worship music API. There is a website, Stream of Praise, with a single WordPress TablePress table of songs. Columns for title, composer, lyricist, album, musical key, and lyrics. That table is the entire upstream surface.
+There's no Chinese worship music API. There's a website, Stream of Praise, with a single WordPress TablePress table of songs. Columns for title, composer, lyricist, album, musical key, and lyrics. That table is the entire upstream surface.
 
 That gives me four problems, and they compound.
 
-First, it is HTML, not a contract. Column order and header text sit under someone else's control. A scraper written against it will eventually break.
+First, it's HTML, not a contract. Column order and header text sit under someone else's control. A scraper written against it will eventually break.
 
 Second, no timings. The lyrics are plain text. Nothing upstream is synchronized to audio, which is why the lyrics pipeline exists at all.
 
@@ -40,9 +38,9 @@ Fourth, Traditional and Simplified Chinese both appear across sources, and the h
 
 ### Scraping a page, not an API
 
-The scraper fetches the songs page, finds the table by DOM id, and raises if it is absent. Header cells get matched by Chinese keyword lists rather than by column position, so a column reorder is survivable and a column rename is not. I would rather the scraper stop than guess which column is the key signature.
+The scraper fetches the songs page, finds the table by DOM id, and raises if it's absent. Header cells get matched by Chinese keyword lists rather than by column position, so a column reorder is survivable and a column rename is not. I'd rather the scraper stop than guess which column is the key signature.
 
-Cell text needs one specific fix. Lyrics arrive with line breaks in markup that is not always well-formed. Some forms simply vanish under naive extraction and silently glue two lyric lines together. The parser normalizes every line-break variant before extracting text.
+Cell text needs one specific fix. Lyrics arrive with line breaks in markup that isn't always well-formed. Some forms simply vanish under naive extraction and silently glue two lyric lines together. The parser normalizes every line-break variant before extracting text.
 
 ### Identity that survives a re-scrape
 
@@ -50,7 +48,7 @@ My first ID scheme was pinyin plus table row number. Cheap, and wrong. Row numbe
 
 The replacement derives the ID from the song's own bibliographic data. Take the title, composer, and lyricist, normalize the text, hash it, and put a short digest after a readable pinyin slug. Same song, same ID. Different song, different ID. Two songs with the same title and different composers still separate cleanly.
 
-The slug is for humans. The digest is for uniqueness. There is also a hard length cap so long Chinese titles do not turn into unwieldy pinyin slugs. The honorific gets rewritten to its common form before romanization, because the library's default reading for that character would make the title unsearchable for the people who actually type it.
+The slug is for humans. The digest is for uniqueness. There's also a hard length cap so long Chinese titles don't turn into unwieldy pinyin slugs. The honorific gets rewritten to its common form before romanization, because the library's default reading for that character would make the title unsearchable for the people who actually type it.
 
 ### Audio: content hash as the primary key
 
@@ -74,19 +72,19 @@ Twenty-one recordings had valid song references after the migration. The small n
 
 ### Two more normalizations
 
-Script conversion. One audio source publishes lyrics in Simplified Chinese and the catalog is Traditional. The conversion protects the honorific with a placeholder so it survives the round trip unchanged, and it is idempotent on a second pass.
+Script conversion. One audio source publishes lyrics in Simplified Chinese and the catalog is Traditional. The conversion protects the honorific with a placeholder so it survives the round trip unchanged, and it's idempotent on a second pass.
 
 Key disagreement. The catalog gives a key per song. The analysis pipeline detects one from audio. They agreed on roughly three out of four songs, and the disagreements clustered around dominant and subdominant relations, which is a classic failure mode for profile-based key detection. The catalog key wins for display. The detector output stays as diagnostics.
 
 ## What broke
 
-The site structure changed once and the scraper threw. That is what I asked for, and it still cost me an afternoon, because "table not found" looks identical to "page did not load" until you read the HTML.
+The site structure changed once and the scraper threw. That's what I asked for, and it still cost me an afternoon, because "table not found" looks identical to "page did not load" until you read the HTML.
 
-For a handful of songs the official video simply is not in the first few search results. The error path wants the operator to supply a URL explicitly, which is the right escape hatch but still a manual step.
+For a handful of songs the official video simply isn't in the first few search results. The error path wants the operator to supply a URL explicitly, which is the right escape hatch but still a manual step.
 
 The wrong video got caught as a duplicate hash. A search returned a different song's video for two catalog entries, and the second download failed on the same bytes. Correct failure, and the message naming the owning song is what made the diagnosis quick.
 
-Simplified and Traditional drift silently produced lyric text that did not match the audio. It only surfaced when alignment scored poorly. The placeholder fix came after.
+Simplified and Traditional drift silently produced lyric text that didn't match the audio. It only surfaced when alignment scored poorly. The placeholder fix came after.
 
 ## What I would do differently
 
@@ -94,6 +92,6 @@ Define ID stability before the first scrape. My row-number scheme was one aftern
 
 Add a scrape-contract test. A test that asserts the header keywords, the table id, and the shape of one parsed row would fail in CI when the page changes, instead of at the start of a batch run.
 
-Make duplicate audio a review queue, not a command failure. A duplicate hash means either "you already have this" or "you downloaded the wrong video", and the system cannot tell which. Right now it guesses by refusing. A queue with both candidates side by side is the honest interface.
+Make duplicate audio a review queue, not a command failure. A duplicate hash means either "you already have this" or "you downloaded the wrong video", and the system can't tell which. Right now it guesses by refusing. A queue with both candidates side by side is the honest interface.
 
-Reconcile the two key sources instead of picking one. A disagreement that is mostly dominant or subdominant is signal, not noise. It should surface as a per-song flag instead of vanishing into diagnostics.
+Reconcile the two key sources instead of picking one. A disagreement that's mostly dominant or subdominant is signal, not noise. It should surface as a per-song flag instead of vanishing into diagnostics.

@@ -15,7 +15,7 @@ description: "A phone-first web app on serverless components, with a render plan
 
 The person using Stream of Worship is standing in a sanctuary on a Saturday night with a phone. They pick four songs, set a couple of transition parameters, hit render, and want an MP4 that plays on the projector TV in the morning. Nothing about that workflow involves a laptop.
 
-That one sentence of intent dictated the architecture. The app splits in two. A request plane that is small, fast, and authenticated. A render plane that is large, slow, and disposable. A queue connects them.
+That one sentence of intent dictated the architecture. The app splits in two. A request plane that's small, fast, and authenticated. A render plane that's large, slow, and disposable. A queue connects them.
 
 This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [The songset constructor](/posts/sow-songset-constructor). Next: [Offline worship playback](/posts/sow-offline-playback).
 
@@ -27,7 +27,7 @@ Four very different clients talk to this system. A phone browser with a session 
 
 Each one needs a different auth answer, and getting it wrong produces failures that look like product bugs. A receiver that gets an HTML login page shows a black screen. An Android client that gets a redirect tries to parse the HTML body and reports an impossible JSON error.
 
-Then there is the artifact problem. Rendered videos are hundreds of megabytes and need to reach devices that are not always on the same network.
+Then there's the artifact problem. Rendered videos are hundreds of megabytes and need to reach devices that aren't always on the same network.
 
 ## What I built
 
@@ -41,33 +41,33 @@ The catalog, recordings, songsets, render jobs, embeddings, and share tables all
 
 ### The render plane
 
-The render endpoint does five things: validate the session, parse the config, enforce limits, insert the job row, and enqueue. If the enqueue fails, the job is marked failed immediately instead of stranded. An already-active job returns conflict rather than stacking.
+The render endpoint does five things: validate the session, parse the config, enforce limits, insert the job row, and enqueue. If the enqueue fails, the job gets marked failed immediately instead of stranded. An already-active job returns conflict rather than stacking.
 
 The dispatch is boring on purpose. One function, one transport, no retry logic, because the worker owns its retries. The payload contains identifiers only, never a serialized songset. The worker re-reads the plan from the database, so a job message can never carry stale data.
 
-The worker is a container that pulls the job, renders audio and video, writes to storage, and updates the row. One job saturates the container, so it is not batchable.
+The worker is a container that pulls the job, renders audio and video, writes to storage, and updates the row. One job saturates the container, so it's not batchable.
 
 ### Progress without a socket
 
-The client polls the render status every ten seconds. That is the shipped mechanism, and the error handling is the interesting part. A failed request changes nothing about the job, so transient errors resume on the next tick. Unauthorized and forbidden stop polling and surface session expired. Not found and gone stop polling and mark the render failed.
+The client polls the render status every ten seconds. That's the shipped mechanism, and the error handling is the interesting part. A failed request changes nothing about the job, so transient errors resume on the next tick. Unauthorized and forbidden stop polling and surface session expired. Not found and gone stop polling and mark the render failed.
 
-I mention this because the README advertises a streaming endpoint that does not exist. Polling is what ships.
+I mention this because the README advertises a streaming endpoint that doesn't exist. Polling is what ships.
 
-### Delivery to a device that cannot log in
+### Delivery to a device that can't log in
 
 Artifacts live in object storage. Access is through presigned URLs minted server-side and scoped to the session that owns the render job. Time limits are sized to a service plus margin.
 
-The projector path uses Chromecast with the lyrics baked into the MP4. The receiver gets a URL to storage and never contacts the web app or needs a catalog. Chapters are a sidecar JSON that the app fetches server-side, because the storage bucket is not configured to let a browser fetch it directly.
+The projector path uses Chromecast with the lyrics baked into the MP4. The receiver gets a URL to storage and never contacts the web app or needs a catalog. Chapters are a sidecar JSON that the app fetches server-side, because the storage bucket isn't configured to let a browser fetch it directly.
 
 ## What broke
 
 The black screen on the TV had two causes, and neither was in the code I was looking at. One venue had client isolation on the guest network. The other was a codec mismatch where the file's index was at the end instead of the beginning, so the receiver had nothing to start on.
 
-Share-page chapters failed in the browser because cross-origin access to storage was not configured. Moving the fetch server-side removed the need for it.
+Share-page chapters failed in the browser because cross-origin access to storage wasn't configured. Moving the fetch server-side removed the need for it.
 
 A Cast receiver can report a stale position. Now anything over a minute prompts the operator to resume instead of auto-resuming from a wedged position.
 
-Cold starts on the worker are accepted rather than engineered away. The operator is already waiting minutes for the encode, so a couple of extra seconds do not change the experience.
+Cold starts on the worker are accepted rather than engineered away. The operator is already waiting minutes for the encode, so a couple of extra seconds don't change the experience.
 
 Orphaned jobs stuck in running get reconciled after a timeout. Without that sweep, an active-job guard would permanently block a songset.
 
