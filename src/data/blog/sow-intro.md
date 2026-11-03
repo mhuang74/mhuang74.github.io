@@ -11,7 +11,7 @@ tags:
 description: Introducing a series on building Stream of Worship, a system for seamless Chinese worship music transitions
 ---
 
-Every Sunday, worship teams hit the same small problem. What happens _between_ the songs? Someone fumbles with a laptop. There's an awkward silence. The next song starts from a cold stop in a different key. For English-language worship there are plenty of tools. For Chinese worship music there's basically nothing. The catalog, the lyrics, even the audio sources live in scattered places with no tooling at all.
+Small group leaders have a dilemma. We want worship to be as powerful as Sunday service, but all we have are Youtube videos with lyrics. What happens _between_ the songs? There's a prolonged and awkward silence. An ad may interrupt. The next song starts from a cold stop in a different key. For English-language worship there are plenty of tools. For Chinese worship music there's basically nothing. How do I find compatible songs and create a smooth lyrics video for all the songs?
 
 [Stream of Worship](https://streamofworship.com) is my attempt to fix that. It analyzes songs, strings them into smooth transitions, and renders ready-to-play audio and lyric videos. A worship leader goes from "here is my song list" to a seamless, offline-capable set.
 
@@ -30,12 +30,14 @@ Four things get it there:
 3. Plans the set. Transitions get judged on musical boundaries, not averages. Sets follow a fixed five-phase worship arc, and an agentic constructor proposes orderings that fit.
 4. Renders and delivers. A serverless worker mixes crossfaded audio and encodes a synchronized lyrics video. The web app has the editor, playback, projection, search, and offline support. There's a native Android client too.
 
-The goals came straight from the project README:
+The goal is to empower the small group worship leaders:
 
-- Generate audio files containing multiple songs with smooth transitions.
-- Generate video files containing lyrics videos of multiple songs with smooth transitions.
-- Provide an interactive tool to select songs and generate output audio and video.
-- Provide an admin tool to manage the song library and perform analysis and lyrics generation.
+- interactively browse, discover, preview songs with lyrics
+- introduce unfamiliar songs with audio version of worship songset
+- generate worship-ready lyrics videos with accurate lyric transitions
+- playback pre-downloaded lyrics video without network
+- cast lyrics to large screen TV via Chromecast
+- share lyrics videos on social media
 
 ## Where it stands
 
