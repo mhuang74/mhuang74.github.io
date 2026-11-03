@@ -13,7 +13,7 @@ description: "I built a macOS input locker so I can watch my coding agent work w
 
 I built HandsOff for one reason. Coding agents can now run long tasks, and I want to read the screen while they run. Screen lock hides the screen, which defeats the point of watching. So I kept the machine open, and I lost work to small curious hands on the keyboard. My youngest was in kindergarten then.
 
-[HandsOff](https://github.com/mhuang74/handsoff-rs) blocks the keyboard, trackpad, and mouse at the system level. The display stays visible. You unlock by typing a passphrase blind. No echo, no cursor. It guards against casual interference: a kid at the keyboard, a colleague, the audience of a screenshare. A determined attacker reboots the machine or walks off with the laptop, so it's more of a simple luggage combo lock than a sophisticated vault lock. 
+[HandsOff](https://github.com/mhuang74/handsoff-rs) blocks the keyboard, trackpad, and mouse at the system level. The display stays visible. You unlock by typing a passphrase blind. No echo, no cursor. It guards against casual interference: a kid at the keyboard, a colleague, the audience of a screenshare. A determined attacker reboots the machine or walks off with the laptop, so it's more of a simple luggage combo lock than a sophisticated vault lock.
 
 That framing drove the design. For a tool that blocks input, a bug that locks the keyboard and won't let go is immediate fail. So I left open an auto-unlock fail-safe rather than guaranteeding the lock to be super strong. Ergonomics over unnecessary features.
 

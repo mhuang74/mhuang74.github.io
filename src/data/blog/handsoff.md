@@ -22,7 +22,7 @@ Modern work often means leaving your laptop open and running while you step away
 
 - Video conferencing. Your cat walks across the keyboard, mutes you at the wrong moment, or types nonsense in chat.
 - Presentations. Children or pets interact with your trackpad and click random things while you screen share.
-- Leaving the laptop unattended. You want to keep monitoring something on screen but you do not want stray input to disrupt it.
+- Leaving the laptop unattended. You want to keep monitoring something on screen but you don't want stray input to disrupt it.
 - Public spaces. You block casual interference while you briefly step away.
 
 Traditional fixes like locking your screen hide everything and defeat the point. HandsOff takes a different approach. It blocks input while keeping your screen visible.
@@ -38,7 +38,7 @@ Key features:
 - Auto-lock. Locks automatically after 180 seconds of inactivity. Configurable from 20 to 600 seconds.
 - Talk hotkey. Press `Ctrl+Cmd+Shift+T` when locked to pass through a spacebar press for unmuting in video calls.
 - Microphone and camera keep working. The lock only affects input devices.
-- One mode. It is a native menu-bar app and nothing else.
+- One mode. It's a native menu-bar app and nothing else.
 
 ## Major use cases
 
@@ -49,7 +49,7 @@ Working from home with pets or kids around? HandsOff protects you during Zoom, G
 - Lock your input while staying visible on camera.
 - Use the Talk hotkey to unmute without unlocking.
 - Your cat can walk across the keyboard without causing chaos.
-- Auto-lock ensures you are protected even if you forget to lock.
+- Auto-lock ensures you're protected even if you forget to lock.
 
 ### Presentations and screen sharing
 
@@ -71,7 +71,7 @@ Need to step away but want to keep monitoring something?
 
 ### Long-running builds and agent sessions
 
-Lock input while a coding agent runs tests or a build. The screen stays readable, so you can watch output land, and stray keystrokes cannot interrupt the session.
+Lock input while a coding agent runs tests or a build. The screen stays readable, so you can watch output land, and stray keystrokes can't interrupt the session.
 
 ## Getting started
 
