@@ -5,50 +5,59 @@ team: Solo
 stack:
   - Rust (CoreGraphics event taps, CFRunLoop)
   - AppKit / menu-bar UI
-  - SHA-256 keycode passphrases
   - GitHub Actions (macOS CI, DMGs)
 outcomes:
   - "v0.10.0 shipped as arm64 and x86_64 DMGs; 19 tagged releases"
   - "Removed a dead CFRunLoop thread that pinned one core at ~100%"
-  - "140 tests, 22 specs, 5 ADRs; tray-only setup with an in-app wizard"
+  - "140 tests, 22 specs; tray-only setup with an in-app wizard"
 featured: false
 pubDatetime: 2026-10-06
 description: "A macOS menu-bar utility that blocks keyboard and mouse input while keeping the screen readable, built to watch coding agents run without curious kids interrupting them."
 ---
 
-## Problem
+I built [HandsOff](https://github.com/mhuang74/handsoff-rs) for one reason. Coding agents run long tasks on my machine now, and I want to read the screen while they run. Locking the screen hides the output I sat down to watch. So in practice I left the laptop open and unlocked, and my youngest did what curious kids do. (One of my Rust projects, so a little over-engineered. That's half the fun.)
 
-I watched long-running work on my own machine: builds, test suites, coding agents churning through both. Locking the screen or letting the screensaver fire hides the very output I sat down to read, so in practice I left the laptop open and unlocked, and a curious kid did what curious kids do.
+HandsOff blocks the keyboard, trackpad, and mouse at the system level. The display stays fully visible. You unlock by typing a passphrase blind: no echo, no cursor. It guards against casual interference — a kid at the keyboard, a colleague, a screenshare audience. A determined attacker can reboot the machine or walk off with it. Think luggage combo lock, not bank vault.
 
-HandsOff blocks the keyboard, trackpad, and mouse at the system level while leaving the display fully visible. You unlock by typing a passphrase blind, with no echo and no cursor. The threat model in the README sets the scope honestly: it guards against casual interference, a child, a colleague, or a screenshare audience, and not against a determined local actor who can reboot the machine, kill the app, or walk off with the laptop.
+A few things building it taught me.
 
-## Constraints
+**The Recovery Path Has to Be Cheaper Than the Bug**
 
-1. **A filter event tap is system-wide and fail-closed.** Input blocking works by swallowing events at head-insert for the whole session, so a callback that stalls freezes every keystroke and click on the machine, and a callback that runs slow gets the tap silently disabled by macOS, which restores input and quietly stops protection. Blocking input is a category where the recovery path has to be cheaper than the bug.
-2. **TCC Accessibility grants bind to the binary path and CDHash.** Every update replaces the ad-hoc signed binary, so the old grant row stays lit while both real permission checks fail. The re-grant flow only works when the app runs from the TCC-approved path, and stale grants have to be reset with `tccutil` before a fresh one can bind.
-3. **The passphrase is typed blind.** It cannot prompt for text, show a caret, or depend on keyboard layout, since the user has no display feedback at all while locked.
-4. **No paid Apple Developer account.** Distribution is an ad-hoc signed DMG plus the Gatekeeper right-click dance; no notarization, no self-updater, no scheduled background daemon.
+Input blocking on macOS works by swallowing events at a CoreGraphics filter tap, system-wide. A callback that stalls freezes every keystroke on the machine. A callback that runs slow gets the tap silently disabled, and macOS quietly stops doing its job. So the failure mode I designed around wasn't "someone bypasses the lock". It was "my own bug holds the keyboard hostage".
 
-## Decisions
+**Fail Open, Loudly**
 
-- **Match the passphrase on physical keycodes, store only a hash.** Keys accumulate into a buffer with a 3 s inactivity reset and are compared against a SHA-256 hash of the keycode sequence. Layout-independent by construction, no plaintext or reversible ciphertext on disk.
-- **Fail open on permission loss.** When the permission monitor sees a runtime revocation, the app unlocks, stops the tap, shows one notification explaining how to fix it, and quits (ADR 0005). Holding input hostage behind a permission the app no longer has is the one outcome worse than having no lock at all.
-- **Auto-unlock as a backoff schedule, not a single timeout.** Enabled by default, the first window opens at 60 minutes and the interval doubles to a 24 h ceiling. Only a real passphrase unlock resets it, so a forgotten passphrase degrades into an increasingly long wait instead of a permanent lockout.
-- **One surface: tray app with an in-app Setup Wizard.** The CLI binary, its tarballs, and the `--setup` terminal flow were removed (ADR 0004); the wizard replaced them (ADR 0002) so permission grants, passphrase capture, and preferences live in the app that needs the grants.
-- **Delete the dead thread, then delete what depended on it.** A background CFRunLoop thread started "for the event tap" owned no sources, so `CFRunLoopRunInMode` returned immediately and the loop spun a core at ~100%. Removing it (v0.9.1) killed the "minimal CPU mode" rationale, so the Disable/Reenable menu pair and an entire `is_disabled` state axis went too (ADR 0005).
-- **Split verification between agent and human.** Agents write code and tests and read logs; GUI, TCC, and CPU checks run on the machine, because macOS denies agents window screenshots and synthetic clicks. The specs name the on-device steps explicitly so a stalled agent knows where its authority ends.
+When the permission monitor sees Accessibility access get revoked at runtime, HandsOff unlocks, stops the tap, posts one notification explaining the fix, and quits (ADR 0005). Locking input without the permission to guarantee release is the one outcome worse than having no lock at all.
 
-## Artifacts
+**Match Keycodes, Not Characters**
 
-- Repo: [mhuang74/handsoff-rs](https://github.com/mhuang74/handsoff-rs) · [releases](https://github.com/mhuang74/handsoff-rs/releases) · v0.10.0
-- Design record: 22 specs (including a deep design review, a CPU-spin investigation, and a hang-risk assessment with a documented revision note), 5 ADRs, `CONTEXT.md`, `AGENTS.md`
-- CI: macOS build and test on every push, tag-triggered arm64 and x86_64 DMG builds via `cargo-bundle`, AI code review workflow
-- Tests: 140 unit and integration tests across config, auth, app state, wizard flows, and single-instance locking
+The passphrase is typed blind. No prompt, no caret, no feedback of any kind. That rules out depending on keyboard layout, so keys accumulate as physical keycodes and get compared against a SHA-256 hash of the sequence, with a 3-second inactivity reset. Layout-independent by construction, and nothing readable ever touches disk.
 
-## Outcome
+**Auto-Unlock Beats Lockout**
 
-- v0.10.0 shipping as `HandsOff-v0.10.0-arm64.dmg` and `HandsOff-v0.10.0-x86_64.dmg`, the 19th tagged release
-- Input blocked at the system level while the display stays visible; unlock is passphrase-only, layout-independent, and silent
-- The one-core busy spin is gone, along with the menu state that existed only to work around it
-- Permission revocation now releases input with one notification instead of wedging the session
+A forgotten passphrase shouldn't brick the session. Auto-unlock opens a window at 60 minutes and the interval doubles from there up to 24 hours. Only a real passphrase unlock resets the schedule, so forgetting degrades into a longer and longer wait instead of a permanent lockout.
+
+**Every Update Breaks Your Own Permission Grant**
+
+macOS TCC binds Accessibility grants to the binary path and CDHash. I have no paid Apple Developer account, so every release is an ad-hoc signed binary, and every update makes the old grant row stay lit while both real permission checks fail. The fix is a `tccutil` reset, then a fresh grant from the TCC-approved path. Distribution stays scrappy: a DMG and the Gatekeeper right-click dance, no notarization, no self-updater.
+
+**One App, One Surface**
+
+There used to be a CLI binary, tarballs, and a `--setup` terminal flow. All deleted (ADR 0004), replaced by an in-app Setup Wizard (ADR 0002). Permission grants, passphrase capture, and preferences now live in the app that actually needs the grants.
+
+**Delete the Dead Thread, Then Delete What Depended on It**
+
+A background CFRunLoop thread started "for the event tap" owned no sources, so `CFRunLoopRunInMode` returned immediately and the loop spun one core at ~100%. Removing it in v0.9.1 killed the whole rationale for a "minimal CPU mode", so the Disable/Reenable menu pair and an entire `is_disabled` state axis went too (ADR 0005). The full detective story is in [what building HandsOff taught me about steering coding agents](/posts/handsoff-steering-coding-agents).
+
+**Agents Write Code, Humans Run the Mac**
+
+Coding agents wrote most of the code and tests, and they read logs well. But macOS denies them window screenshots and synthetic clicks, so GUI behavior, TCC states, and CPU sampling run on-device, by me. The specs name the human steps explicitly so a stalled agent knows where its authority ends.
+
+## Numbers
+
+- v0.10.0 ships as `HandsOff-v0.10.0-arm64.dmg` and `HandsOff-v0.10.0-x86_64.dmg`, the 19th tagged release
+- 140 unit and integration tests; 22 specs, 5 ADRs, `CONTEXT.md`, `AGENTS.md`
+- macOS CI builds and tests every push; tags trigger both DMG builds via `cargo-bundle`
 - 167 commits from first commit to v0.10.0, in under a year
+
+Source and releases: [mhuang74/handsoff-rs](https://github.com/mhuang74/handsoff-rs) · [releases](https://github.com/mhuang74/handsoff-rs/releases). Install walkthrough lives in the [product post](/posts/handsoff).

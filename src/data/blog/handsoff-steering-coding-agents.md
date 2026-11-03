@@ -67,19 +67,19 @@ It compiled. It read correctly. It shipped. Only a click exposed it, and the cli
 
 ## The lock that locked me out
 
-This one was serious, but broke the Installation wizard and not the core tool. The wizard used to listen for your passphrase the moment permission came through. That listener swallows every keystroke on the machine, which is its job. Except nothing on screen said it was happening, and it stayed that way for up to 300 seconds. Quit and relaunch, and the wizard does it again.
+This one was serious, but broke the Installation wizard and not the main usecase. The wizard used to listen for your passphrase the moment permission came through. That listener swallows every keystroke on the machine, which is its job. Except nothing on screen said it was happening, and it stayed that way for up to 300 seconds. Quit and relaunch, and the wizard does it again.
 
-The afternoon I chased this down, I counted 16 stacked wizard launches. Each one held the keyboard hostage. The tool I built to prevent that failure committed it.
+The afternoon I chased this down, I counted 16 stacked wizard launches. Each one held the keyboard hostage. I didn't think to build an escape hatch for installer bugs.
 
 The fix touched the design, not the cosmetics. Capture starts only when you click the Capture Passphrase button. It runs at most 120 seconds with a countdown on screen, and it stops within a tenth of a second when you close the window. A lock file keeps a second copy off the first. The policy changed too: if the permission breaks while the app runs, it unlocks, shows one notification, and quits. A broken permission releases the keyboard. It never holds it hostage.
 
-Write down the failure you cannot accept before you write the code. It shapes the design, not just the test list. Mine was "never leave input blocked". Half the dead features fell out of taking that sentence seriously.
+Write down the failure you cannot accept as soon as you think of it and make it a hard constraint. It shapes the design, not just the test list. I added "never leave input blocked" in AGENTS.md after this lesson.
 
 ## How I steer the agent now
 
 A few takeaways.
 
-Define the failure first. Put the unacceptable outcome in the spec as a sentence, not as an implication.
+Define the failure first. Put the unacceptable outcome in AGENTS.md and in the specs. Make it a hard constraint the agent can't ignore.
 
 Turn runtime claims into acceptance criteria. Name the command and the number: `sample handsoff-tray 5`, an idle CPU target, lock then type then unlock.
 

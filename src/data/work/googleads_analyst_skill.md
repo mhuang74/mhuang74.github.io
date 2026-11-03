@@ -1,5 +1,5 @@
 ---
-title: "googleads-analyst-skill"
+title: "GoogleAds Analyst Skill"
 role: "Designer & Author"
 team: Solo
 stack:
@@ -8,7 +8,7 @@ stack:
   - prompt engineering
   - pandoc / weasyprint
 outcomes:
-  - "60+ GAQL fields validated across 12 resources before shipping (.internal validation audit)"
+  - "Automatically generates white-labeled Google Ads Performance Reports with anomalies highlighted."
 featured: false
 pubDatetime: 2026-09-28
 description: A Claude agent skill that conducts period-over-period Google Ads analysis, root-causes anomalies against change-event history, and applies approved mutations — with guardrails at every irreversible step.

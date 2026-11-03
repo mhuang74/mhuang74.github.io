@@ -77,19 +77,34 @@ const sowStack = [
 
 const projects = [
   {
+    pill: "Rust · macOS",
+    title: "HandsOff",
+    href: workHrefs.get("HandsOff"),
+    body: "A lightweight macOS menu-bar utility that locks the keyboard and mouse — never the screen — so you can watch long-running coding agents work without a curious kid interrupting them.",
+    metric: "Months of continuous use, zero crashes",
+    tags: [
+      "Rust",
+      "CoreGraphics event taps",
+      "AppKit menu bar",
+      "GitHub Actions",
+    ],
+  },
+  {
     pill: "Claude agent skill",
-    title: "googleads-analyst-skill",
-    href: workHrefs.get("googleads-analyst-skill"),
+    title: "GoogleAds Analyst Skill",
+    href: workHrefs.get("GoogleAds Analyst Skill"),
     body: "A Claude agent skill that runs period-over-period Google Ads analysis, root-causes anomalies against change-event history, and applies approved mutations — with guardrails at every irreversible step.",
-    metric: "60+ GAQL fields validated across 12 resources before shipping.",
+    metric:
+      "Customized Google Ads Performance Reports with anomalies highlighted.",
     tags: ["Agent skills", "mcc-gaql CLI", "Prompt engineering"],
   },
   {
     pill: "Rust · RAG",
-    title: "mcc-gaql-rs",
-    href: workHrefs.get("mcc-gaql-rs"),
+    title: "MCC GAQL Tool",
+    href: workHrefs.get("MCC GAQL Tool"),
     body: "Three Rust CLIs for querying, mutating, and LLM-generating Google Ads GAQL across MCC child accounts — with a RAG pipeline that knows the API schema better than a generalist model.",
-    metric: "Natural language → GAQL in ~3–4 s end to end.",
+    metric:
+      "Use English to consolidate/aggregate Campaign metrics across entire MCC structure",
     tags: ["Rust", "tonic gRPC", "Polars", "LanceDB + Arrow", "Cloudflare R2"],
   },
 ];
@@ -278,7 +293,7 @@ const posts = [
   <!-- more work -->
   <section class="pl-section" data-od-id="more-work">
     <p class="eyebrow">More work</p>
-    <h2>Two more products, two more constraint sets.</h2>
+    <h2>Three more products, three more constraint sets.</h2>
     <div class="work-grid">
       {
         projects.map(p => (
@@ -611,7 +626,7 @@ const posts = [
   }
   .work-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 32px;
   }
   .work-card {
