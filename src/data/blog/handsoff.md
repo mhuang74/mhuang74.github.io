@@ -7,97 +7,94 @@ featured: false
 draft: false
 tags:
   - building
-description: A macOS utility to lock keyboard/mouse while leaving the screen viewable
+description: A macOS utility to lock keyboard and mouse while leaving the screen viewable
 ---
 
-Have you ever been on a video call when your cat walks across your keyboard, sending embarrassing gibberish to your colleagues? Or had your toddler "help" with your presentation by clicking everything in sight? HandsOff is a native macOS utility that solves these problems by blocking all keyboard, trackpad, and mouse input while keeping your screen fully visible.
+Have you ever been on a video call when your cat walks across your keyboard and types gibberish into chat? Or had your curious kid "help" with your presentation by clicking everything in sight? HandsOff is a small macOS utility for exactly that. It blocks all keyboard, trackpad, and mouse input while your screen stays fully visible.
 
 <!-- more -->
 
-**Update (October 2026):** HandsOff now ships as a menu-bar app only. The CLI, PKG installer, and encrypted-config format described below are gone. For how the app was built and debugged, see [what building HandsOff taught me about steering coding agents](/posts/handsoff-steering-coding-agents).
+HandsOff today is a menu-bar app, and for how it was built and debugged, see [what building HandsOff taught me about steering coding agents](/posts/handsoff-steering-coding-agents).
 
-## The Problem
+## The problem
 
-Modern work often requires leaving your laptop open and running while you step away or during video calls. But this creates several risky situations:
+Modern work often means leaving your laptop open and running while you step away or sit on a video call. That invites a few bad situations:
 
-- **Video conferencing**: Your cat walks across the keyboard, muting/unmuting you at inappropriate moments or typing nonsense in chat
-- **Presentations**: Children or pets interact with your trackpad, clicking random things while you're screen sharing
-- **Leaving laptop unattended**: You want to keep monitoring something on screen (a long build, a video conference, a dashboard) but don't want accidental input to disrupt it
-- **Public spaces**: Protecting your laptop from curious onlookers or accidental touches while you briefly step away
+- Video conferencing. Your cat walks across the keyboard, mutes you at the wrong moment, or types nonsense in chat.
+- Presentations. Children or pets interact with your trackpad and click random things while you screen share.
+- Leaving the laptop unattended. You want to keep monitoring something on screen but you do not want stray input to disrupt it.
+- Public spaces. You block casual interference while you briefly step away.
 
-Traditional solutions like locking your screen or using a screensaver hide everything, defeating the purpose. HandsOff takes a different approach: it blocks input while keeping your screen visible.
+Traditional fixes like locking your screen hide everything and defeat the point. HandsOff takes a different approach. It blocks input while keeping your screen visible.
 
-## How HandsOff Works
+## How HandsOff works
 
-HandsOff uses macOS's CoreGraphics event tap system to intercept and block keyboard, trackpad, and mouse events at the system level. When locked, your screen stays on and viewable, but no input gets through except for your secret passphrase to unlock.
+HandsOff uses macOS CoreGraphics event taps to intercept keyboard, trackpad, and mouse events at the system level. When locked, your screen stays on and viewable, but no input gets through except for your secret passphrase to unlock.
 
-**Key Features:**
+Key features:
 
-- **Complete Input Blocking**: All keyboard, trackpad, and mouse inputs are blocked while the screen remains visible
-- **Secure Unlocking**: Unlock by typing your passphrase (even though you can't see the input)
-- **Auto-Lock**: Automatically locks after 180 seconds of inactivity (configurable, 20–600 s)
-- **Talk Hotkey**: Press `Ctrl+Cmd+Shift+T` when locked to pass through a spacebar press for unmuting in video calls
-- **Microphone & Camera**: Video conferencing apps continue to work normally - the lock only affects input devices
-- **One mode**: native menu bar app; the CLI was removed in v0.9.0
+- Complete input blocking. All keyboard, trackpad, and mouse input is blocked while the screen remains visible.
+- Secure unlocking. You unlock by typing your passphrase blind. No echo, no cursor.
+- Auto-lock. Locks automatically after 180 seconds of inactivity. Configurable from 20 to 600 seconds.
+- Talk hotkey. Press `Ctrl+Cmd+Shift+T` when locked to pass through a spacebar press for unmuting in video calls.
+- Microphone and camera keep working. The lock only affects input devices.
+- One mode. It is a native menu-bar app and nothing else.
 
-## Major Use Cases
+## Major use cases
 
-### 1. Video Conferencing
+### Video conferencing
 
 Working from home with pets or kids around? HandsOff protects you during Zoom, Google Meet, or Teams calls:
 
-- Lock your input while staying visible on camera
-- Use the Talk hotkey (`Ctrl+Cmd+Shift+T`) to unmute without unlocking
-- Your cat can walk across the keyboard without causing chaos
-- Auto-lock ensures you're protected even if you forget to manually lock
+- Lock your input while staying visible on camera.
+- Use the Talk hotkey to unmute without unlocking.
+- Your cat can walk across the keyboard without causing chaos.
+- Auto-lock ensures you are protected even if you forget to lock.
 
-### 2. Presentations and Screen Sharing
+### Presentations and screen sharing
 
 When sharing your screen:
 
-- Lock input to prevent accidental clicks or key presses
-- Keep your presentation flowing without interruption
-- Unlock instantly when you need to interact again
-- Perfect for demos, training sessions, or client meetings
+- Lock input to prevent accidental clicks or key presses.
+- Keep your presentation flowing without interruption.
+- Unlock instantly when you need to interact again.
+- Works well for demos, training sessions, and client meetings.
 
-### 3. Leaving Your Laptop Unattended
+### Leaving your laptop unattended
 
 Need to step away but want to keep monitoring something?
 
-- Lock input while keeping your screen visible
-- Monitor long-running processes, builds, or deployments
-- Watch video conferences continue while you grab coffee
-- Protect against accidental touches in public spaces
+- Lock input while keeping your screen visible.
+- Monitor long-running processes, builds, or deployments.
+- Watch a video conference continue while you grab coffee.
+- Protect against accidental touches in public spaces.
 
-### 4. Long-running builds and agent sessions
+### Long-running builds and agent sessions
 
-Lock input while a coding agent runs tests or a build. The screen stays readable, so you can watch the output land, and accidental keystrokes cannot interrupt the session.
+Lock input while a coding agent runs tests or a build. The screen stays readable, so you can watch output land, and stray keystrokes cannot interrupt the session.
 
-## Getting Started
+## Getting started
 
-HandsOff ships as an ad-hoc signed DMG:
+HandsOff ships as an ad-hoc signed DMG.
 
-### Menu Bar App
+1. Download the arm64 or x86_64 DMG from [GitHub Releases](https://github.com/mhuang74/handsoff-rs/releases).
+2. Drag `HandsOff.app` to `/Applications`.
+3. Right-click and choose Open on first launch, then confirm the Gatekeeper prompt.
+4. Grant Accessibility permissions in System Settings.
+5. The Setup Wizard opens automatically on first run.
 
-1. Download the arm64 or x86_64 DMG from [GitHub Releases](https://github.com/mhuang74/handsoff-rs/releases)
-2. Drag `HandsOff.app` to `/Applications`
-3. Right-click → Open on first launch, then confirm the Gatekeeper prompt
-4. Grant Accessibility permissions in System Settings
-5. The Setup Wizard opens automatically on first run
-
-The menu bar icon is red when locked. The menu is Lock Input, Preferences…, Change Passphrase…, Reset…, Fix Accessibility Permission…, Check for Updates…, Help, Quit. All mouse clicks are blocked while locked, so unlocking is passphrase-only.
-
-Build from source following `DEVELOPER.md`; there is no CLI binary.
+The menu-bar icon is red when locked. The menu has Lock Input, Preferences, Change Passphrase, Reset, Fix Accessibility Permission, Check for Updates, Help, and Quit. All mouse clicks are blocked while locked, so unlocking is passphrase-only.
 
 ## Security
 
-HandsOff takes security seriously:
+HandsOff stores your passphrase as a hash of the physical keycodes you press. That works with any keyboard layout, and nothing readable touches disk.
 
-- Passphrase stored as a SHA-256 hash of the physical keycode sequence (layout-independent, no plaintext on disk)
-- Config file readable only by your user account (600 permissions)
-- No network connections or telemetry
-- All data stays local on your device
-- Auto-unlock enabled by default: 60 min, doubling to 24 h; only a successful passphrase unlock resets it
+Other details:
+
+- Config file readable only by your user account.
+- No network connections or telemetry.
+- All data stays local on your device.
+- Auto-unlock defaults to 60 minutes, doubling to 24 hours. Only a passphrase unlock resets it.
 
 HandsOff guards against casual interference, not a determined local actor who can reboot, kill the app, or take the machine.
 
@@ -105,12 +102,8 @@ HandsOff guards against casual interference, not a determined local actor who ca
 
 HandsOff is written in Rust for performance, safety, and native macOS integration. It uses CoreGraphics event taps for reliable input blocking and integrates cleanly with macOS's Accessibility framework.
 
-The project is open source and available on [GitHub](https://github.com/mhuang74/handsoff-rs). Contributions welcome!
+The project is open source and available on [GitHub](https://github.com/mhuang74/handsoff-rs). Contributions welcome.
 
 ---
 
-**Requirements**: macOS 13 (Ventura) or later
-
-**Tested on**: MacBook Air M2, macOS 15.7/15.8
-
-**License**: See LICENSE file on GitHub
+Requires macOS 13 (Ventura) or later. Tested on a MacBook Air M2. License is in the GitHub repo.
