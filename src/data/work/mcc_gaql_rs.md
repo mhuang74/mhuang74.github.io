@@ -1,5 +1,5 @@
 ---
-title: "mcc-gaql-rs"
+title: "MCC GAQL Tool"
 role: "Creator & Maintainer"
 team: Solo
 stack:
@@ -10,7 +10,7 @@ stack:
   - LanceDB + Arrow
   - Cloudflare R2
 outcomes:
-  - "NL→GAQL generation in ~3-4s end-to-end (docs/RAG_OVERVIEW.md)"
+  - "Aggregates any campaign metrics across entire MCC structure within seconds, using just plain English"
 featured: false
 pubDatetime: 2026-09-28
 description: Three Rust CLIs for querying, mutating, and LLM-generating Google Ads GAQL across MCC child accounts — with a RAG pipeline that knows the API schema better than a generalist model.
