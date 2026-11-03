@@ -13,12 +13,12 @@ outcomes:
   - "140 tests, 22 specs, 5 ADRs; tray-only setup with an in-app wizard"
 featured: false
 pubDatetime: 2026-10-06
-description: "A macOS menu-bar utility that blocks keyboard and mouse input while keeping the screen readable, built to watch coding agents run without a toddler interrupting them."
+description: "A macOS menu-bar utility that blocks keyboard and mouse input while keeping the screen readable, built to watch coding agents run without curious kids interrupting them."
 ---
 
 ## Problem
 
-I watched long-running work on my own machine: builds, test suites, coding agents churning through both. Locking the screen or letting the screensaver fire hides the very output I sat down to read, so in practice I left the laptop open and unlocked, and a toddler did what toddlers do.
+I watched long-running work on my own machine: builds, test suites, coding agents churning through both. Locking the screen or letting the screensaver fire hides the very output I sat down to read, so in practice I left the laptop open and unlocked, and a curious kid did what curious kids do.
 
 HandsOff blocks the keyboard, trackpad, and mouse at the system level while leaving the display fully visible. You unlock by typing a passphrase blind, with no echo and no cursor. The threat model in the README sets the scope honestly: it guards against casual interference, a child, a colleague, or a screenshare audience, and not against a determined local actor who can reboot the machine, kill the app, or walk off with the laptop.
 
