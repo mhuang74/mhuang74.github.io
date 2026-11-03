@@ -11,11 +11,11 @@ tags:
 description: Introducing a series on building Stream of Worship, a system for seamless Chinese worship music transitions
 ---
 
-Every Sunday, worship teams hit the same small problem. What happens _between_ the songs? Someone fumbles with a laptop. There is an awkward silence. The next song starts from a cold stop in a different key. For English-language worship there are plenty of tools. For Chinese worship music there is basically nothing. The catalog, the lyrics, even the audio sources live in scattered places with no tooling at all.
+Every Sunday, worship teams hit the same small problem. What happens _between_ the songs? Someone fumbles with a laptop. There's an awkward silence. The next song starts from a cold stop in a different key. For English-language worship there are plenty of tools. For Chinese worship music there's basically nothing. The catalog, the lyrics, even the audio sources live in scattered places with no tooling at all.
 
 [Stream of Worship](https://streamofworship.com) is my attempt to fix that. It analyzes songs, strings them into smooth transitions, and renders ready-to-play audio and lyric videos. A worship leader goes from "here is my song list" to a seamless, offline-capable set.
 
-This post kicks off a series on how it is built.
+This post kicks off a series on how it's built.
 
 <!-- more -->
 
@@ -28,7 +28,7 @@ Four things get it there:
 1. Builds the catalog. A scraper pulls the song catalog, audio gets deduplicated by content hash, and everything lands in a shared database with object storage holding audio and rendered files.
 2. Analyzes every recording. A GPU-heavy service produces tempo, key, sections, and stems. Lyrics get generated through a fallback pipeline into LRC files.
 3. Plans the set. Transitions get judged on musical boundaries, not averages. Sets follow a fixed five-phase worship arc, and an agentic constructor proposes orderings that fit.
-4. Renders and delivers. A serverless worker mixes crossfaded audio and encodes a synchronized lyrics video. The web app has the editor, playback, projection, search, and offline support. There is a native Android client too.
+4. Renders and delivers. A serverless worker mixes crossfaded audio and encodes a synchronized lyrics video. The web app has the editor, playback, projection, search, and offline support. There's a native Android client too.
 
 The goals came straight from the project README:
 
@@ -48,7 +48,7 @@ Coming later in this series: offline worship playback on downloaded sets, and a 
 
 ## The series
 
-Here is the plan for the posts, roughly in pipeline order:
+Here's the plan for the posts, roughly in pipeline order:
 
 1. [Why seamless worship transitions are hard](/posts/sow-why-transitions-are-hard).
 2. [Building the catalog](/posts/sow-catalog).
@@ -63,6 +63,6 @@ Here is the plan for the posts, roughly in pipeline order:
 
 One more post follows the retrospective: [Detector 2.0.0: catching bad Chinese worship lyrics](/posts/lrc-detector-2-0-0). It covers the quality gate that runs over the lyrics these pipelines produce.
 
-Most posts stick to what is actually in the repo: the pipelines, the things that broke, and the numbers I can defend. If this sounds like your problem too, the code is open source and the [user guide](https://streamofworship.com) covers the worship-leader workflow.
+Most posts stick to what's actually in the repo: the pipelines, the things that broke, and the numbers I can defend. If this sounds like your problem too, the code is open source and the [user guide](https://streamofworship.com) covers the worship-leader workflow.
 
 Next up: [why seamless worship transitions are hard](/posts/sow-why-transitions-are-hard).
