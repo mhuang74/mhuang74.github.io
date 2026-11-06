@@ -11,76 +11,75 @@ stack:
   - PyTorch / Demucs
   - Jetpack Compose (Android)
 outcomes:
-  - "Built for a 400+ song catalog with thousands of scored pairwise transitions"
+  - "Live web app with 445 songs cataloged and over 100 manually verified for lyrics and timing"
 featured: true
 pubDatetime: 2026-09-28
-description: A system that analyzes Chinese worship songs and renders seamless multi-song audio and lyrics-video sets — from catalog scraping to offline-capable playback.
+description: Building a Mandarin worship tool for small group leaders, from accurate timed lyrics to continuous songsets ready for offline playback.
 ---
-
-import ShowcaseSetExplorer from "@/components/ShowcaseSetExplorer.astro";
 
 ## Problem
 
-I built [Stream of Worship](https://www.streamofworship.com/about) to help small group leaders play Mandarin worship songs without interruptions. Playing lyrics videos from YouTube means switching between songs and depending on the network to hold up. The pauses break the flow, and a dropped connection can leave everyone waiting.
+I built [Stream of Worship](https://www.streamofworship.com/about) because I wanted small group worship to flow without having to manage YouTube between songs. Leading worship also meant dealing with awkward pauses between videos and dropped connections in the middle of a song.
 
-There aren't many lyrics-video options for Mandarin worship. I wanted a leader to pick songs, render a continuous set with synchronized lyrics, and cast it to the TV. The output is one audio file and a lyrics video with chapter markers, ready for offline playback. No manual audio editing needed.
+The leader already has enough to think about. Finding the next video and waiting for it to load shouldn't be part of the job. There weren't many lyrics-video tools for Mandarin worship, so I started building one.
+
+The workflow I wanted was simple: pick songs, arrange them into a set, render a continuous lyrics video, and cast it to the TV. Download it beforehand so playback doesn't depend on the network. An audio-only version would also help the group learn unfamiliar songs before meeting.
+
+I wrote about the work in [Stream of Worship, a series](/posts/sow-intro). The posts follow the project from building the catalog to lyrics alignment, transitions, and offline playback, including the parts that still need work.
 
 ## Constraints
 
 Three things shaped the project:
 
-1. **Playback has to work offline.** The network problems were part of the reason for building this. Downloading the set before worship had to work from the start.
-2. **Accurate LRC files are hard to find.** The lyrics have to match what is actually sung in the recording, including every verse and chorus repetition, with an accurate timecode for each line. Getting both the words and timing right took a lot of work.
-3. **ASR still needs human review.** Automatic speech recognition (ASR) models made plenty of mistakes on the Chinese songs I worked with, even Alibaba's Qwen3 ASR. Creating an LRC file from scratch wasn't as simple as feeding the audio to Whisper or Qwen3. I needed to automate as much as I could and build a human-in-the-loop process to validate and correct the LRC files.
+1. **Playback has to work offline.** Unreliable networks were part of the reason for building this. A leader needs to download a set before worship and play it without a connection.
+2. **Accurate LRC files are hard to find.** An LRC file pairs each lyric line with a timestamp. The words have to match the recording, including every repeated verse and chorus, and each line has to appear at the right time. Having the official lyrics only solves part of that problem.
+3. **ASR still needs human review.** Automatic speech recognition (ASR) made plenty of mistakes on the Chinese songs I worked with, even Alibaba's Qwen3 ASR. Feeding a recording to Whisper or Qwen3 wasn't enough. I needed to automate the first pass and make it practical for a human to check and correct the result.
 
 ## Decisions
 
-**Keep the components separate**
+**Make lyrics review part of the product**
 
-The monorepo has 9 components. I kept ML dependencies in the Dockerized Analysis Service, and routed the admin CLI and Android client through APIs rather than letting them access Postgres, R2, or SQS directly. These boundaries are conventions documented in AGENTS.md. For a solo project I expect to maintain for years, I wanted the interfaces to be explicit.
+A video can render successfully and still be unusable for singing. Wrong characters and late lyrics are different problems, so I separated text correction from timing alignment. The pipeline uses available captions or ASR to get a first pass, corrects against the official lyrics, and supports a separate forced-alignment step for timing. Machine-generated files go into review before publication. I explain the tradeoffs in [Synced lyrics from messy sources](/posts/sow-lyrics-pipeline).
 
-**Look at where songs meet**
+That made the review workflow worth improving. I added a lyrics editor and a [review queue](https://github.com/mhuang74/stream_of_worship/pull/261) that puts songs with reported problems first, then considers songs people have put in sets or favorited. Listeners can report timing or text problems and [add a note](https://github.com/mhuang74/stream_of_worship/pull/262) about the affected lines. Feedback points me toward a correction; it doesn't overwrite the shared lyrics automatically.
 
-Whole-song key and tempo averages can produce jarring transitions. I use the key and BPM at the end of one song and the beginning of the next to judge how well they fit together.
+**Let the leader listen and adjust**
 
-The songset constructor uses beam search to find sets across five worship phases （讚美 → 感恩 → 敬拜 → 奉獻 → 差遣）. It scores theme, tempo flow, harmonic mix, and diversity. Hard constraints can be relaxed through configuration when the search needs more room.
+The editor lets a leader choose the song order and adjust gaps and crossfades. A gap is measured in beats, then converted to seconds using the tempo. Two beats at 90 BPM should leave more space than two beats at 140 BPM.
 
-**Give tempo estimation some context**
+For transition recommendations, I compare the end of one recording with the beginning of the next. A song's average key or tempo can miss what happens at those points. But a compatibility score doesn't tell me whether a transition sounds good. The shipped renderer handles gaps, fades, and volume normalization; automatic pitch shifting and tempo matching aren't implemented. [The transition engine](/posts/sow-transition-engine) covers both the design and those limits.
 
-Off-the-shelf tempo estimators can get confused by worship arrangements and return half or double the tempo. I added BPM priors for worship music, plus a lognormal prior derived from lyrics characters per second, to help resolve that ambiguity.
+**Move rendering out of the web request**
 
-**The lyrics pipeline needs fallbacks**
+Generating a multi-song video takes longer than a normal web request. I put that work in an AWS Lambda container fed by SQS, while the Next.js app handles editing and shows render progress. The worker produces an MP3 mix and an MP4 with synchronized lyrics and chapter markers.
 
-The pipeline chains YouTube transcripts → cloud ASR → local Whisper → LLM alignment → a forced aligner. A circuit breaker handles repeated YouTube transcript failures. When an API hits its free-tier quota, jobs wait for the quota to reset. Separate semaphores for each job class keep catalog backfills from taking all the capacity needed by live requests.
+The output needed iteration too. Long Chinese lines were getting smaller because the renderer shrank each line to fit. I [changed the layout](https://github.com/mhuang74/stream_of_worship/pull/274) to wrap at phrase boundaries and use one lyric font size throughout the video. Keeping the words readable on a TV matters more than fitting every phrase onto one line.
 
-**Render in Lambda**
+**Download everything needed to start playback**
 
-An AWS Lambda container takes render jobs from SQS and produces crossfaded multi-song MP3s and lyrics MP4s of around 29,000 frames. The browser receives progress through server-sent events (SSE). This keeps the long-running render work out of Vercel functions.
+Caching the video alone isn't enough. The player page, lyrics, and chapter data also need to be available without a connection. And browsers request videos in byte ranges, so the service worker has to serve those ranges from the downloaded file for seeking to work.
 
-**Download the set before worship**
-
-The web app caches rendered files in a service worker, with byte-range serving for large videos. Share links point to frozen copies scoped to a token, so later edits don't change the set someone else received. I recorded that decision in ADR 0009.
+Shared sets also need predictable behavior. A share link points to a frozen copy, so editing my own set later doesn't change what someone else prepared to play. [Offline worship playback](/posts/sow-offline-playback) goes into the cache and startup problems behind this workflow.
 
 ## Showcase
 
-Here's output from the songset constructor's eval harness (`eval/run1_standard`, 2026-07-26). It searched a pool of 438 songs with 191,406 scored pairwise transitions and returned five ranked three-song sets. Pick a proposal to see the songs, transition notes, and scores.
+The [live web app](https://app.streamofworship.com) is the working result. After signing in, a leader can browse songs, preview them with lyrics, arrange a set, and adjust the space between songs. The set can then be rendered as audio or a lyrics video, downloaded for offline playback, projected or cast to a larger screen, and shared with others.
 
-<div class="not-prose rounded bg-muted/40 px-3 py-1 font-mono text-[11px] text-foreground/60">
-  Audio files are not committed to the repo — waveforms are illustrative. Song,
-  key, BPM, crossfade, and score data are verbatim constructor output.
-</div>
+The catalog contains **445 songs**, with **over 100 manually verified for lyrics and timing accuracy**. That distinction matters. Generating lyrics for a recording and checking that a group can actually sing along with them are separate steps.
 
-<ShowcaseSetExplorer />
+**Next steps: help choose the songs**
 
-I think the ranking is the useful part. Proposal 1 scores higher on tempo flow (0.642 vs 0.526) and harmonic mix (0.780 vs 0.620), but proposals 3 and 4 come within 0.15 of its composite score with entirely different openings. In proposals 2 and 5, the constructor accepts a 4-second crossfade with a +1 semitone key shift into the closing song. These are tradeoffs a leader can inspect when choosing a set.
+Automated songset construction is an area I'm exploring. The constructor proposes song combinations using worship themes, tempo, and harmonic compatibility. For now, I don't have enough listening evidence to say that a higher-ranked set makes for better worship flow. I want to evaluate the proposed sets by listening before making the scores a bigger part of the product. The [songset constructor post](/posts/sow-songset-constructor) covers the approach in more detail.
 
 ## Artifacts
 
-- Web app (login-gated): `app.streamofworship.com`
+- Web app (sign-in required): [app.streamofworship.com](https://app.streamofworship.com)
 - Marketing site: [streamofworship.com](https://streamofworship.com)
-- Repo: [mhuang74/stream_of_worship](https://github.com/mhuang74/stream_of_worship) · 11 ADRs · ~500 versioned specs
-- Blog series: [Stream of Worship, a series](/posts/sow-intro) walks the pipeline end to end; deep-dives on [the transition engine](/posts/sow-transition-engine), [the lyrics pipeline](/posts/sow-lyrics-pipeline), and [offline playback](/posts/sow-offline-playback) are published.
+- Repo: [mhuang74/stream_of_worship](https://github.com/mhuang74/stream_of_worship)
+- Blog series: [Stream of Worship, a series](/posts/sow-intro), with posts on [the lyrics pipeline](/posts/sow-lyrics-pipeline), [the transition engine](/posts/sow-transition-engine), and [offline playback](/posts/sow-offline-playback).
 
 ## Outcome
 
-The system is built to handle a catalog of 400+ songs, with 191,406 scored pairwise transitions in the eval harness. The work includes ~500 versioned spec documents with v1–v5 iteration chains, 11 ADRs, and 150+ Vitest files for the web app alone. CI runs against a real Postgres instance with pgvector.
+Stream of Worship is live, with a workflow from song selection to a downloaded worship set. A leader can prepare continuous playback without manually editing audio or lining up lyrics in a video editor.
+
+The catalog work is still ongoing. More than 100 songs have been checked by hand, with 300+ to go. I built an [LRC problem detector](/posts/lrc-detector-2-0-0) to identify songs most likely with issues, and the lyrics feedback system captures problems actual users report.
