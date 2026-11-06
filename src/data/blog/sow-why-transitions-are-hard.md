@@ -17,7 +17,7 @@ I want Stream of Worship to join Chinese worship recordings into a set that a sm
 
 So before building a mixer, I needed to decide what makes a useful transition. Nothing as ambitious as replacing a worship leader's judgment. I just want the software to catch some poor combinations and make the remaining ones easier to audition.
 
-This is part of [Stream of Worship, a series](/posts/sow-intro). Next: [Building the catalog](/posts/sow-catalog).
+This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Series introduction](/posts/sow-intro). Next: [Building the catalog](/posts/sow-catalog).
 
 <!-- more -->
 

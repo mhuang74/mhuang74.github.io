@@ -18,7 +18,7 @@ Finding the broken lyrics files first would make the review queue easier to work
 
 The detector's job is to rank files for a human to check. It compares timed lyrics with a transcript and, when available, beat and audio-model evidence. It doesn't publish a file or replace listening to the recording.
 
-This post is part of [Stream of Worship, a series](/posts/sow-intro), following the [retrospective](/posts/sow-retrospective).
+This post is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Ten build phases](/posts/sow-retrospective).
 
 <!-- more -->
 

@@ -2,6 +2,7 @@
 title: Stream of Worship, a series
 author: Michael Huang
 pubDatetime: 2026-05-05T00:00:00Z
+modDatetime: 2026-11-06T00:00:00Z
 slug: sow-intro
 featured: false
 draft: false
@@ -54,14 +55,15 @@ Here's the plan for the posts, roughly in pipeline order:
 
 1. [Why seamless worship transitions are hard](/posts/sow-why-transitions-are-hard).
 2. [Building the catalog](/posts/sow-catalog).
-3. [The analysis pipeline](/posts/sow-analysis-pipeline).
-4. [Synced lyrics from messy sources](/posts/sow-lyrics-pipeline).
-5. [The transition engine](/posts/sow-transition-engine).
-6. [The songset constructor](/posts/sow-songset-constructor).
-7. [The web app architecture](/posts/sow-webapp-architecture).
-8. [Offline worship playback](/posts/sow-offline-playback).
-9. [Going native: the Android client](/posts/sow-android-client).
-10. [Ten build phases: what Stream of Worship taught me](/posts/sow-retrospective).
+3. [Synced lyrics: generation and alignment](/posts/sow-lyrics-pipeline).
+4. [Analyzing songs: tempo, key, sections, and meaning](/posts/sow-analysis-pipeline).
+5. [Running the Analysis Service: Modal apps and background jobs](/posts/sow-analysis-infrastructure).
+6. [The transition engine](/posts/sow-transition-engine).
+7. [The songset constructor](/posts/sow-songset-constructor).
+8. [The web app architecture](/posts/sow-webapp-architecture).
+9. [Offline worship playback](/posts/sow-offline-playback).
+10. [Going native: the Android client](/posts/sow-android-client).
+11. [Ten build phases: what Stream of Worship taught me](/posts/sow-retrospective).
 
 One more post follows the retrospective: [Detector 2.0.0: catching bad Chinese worship lyrics](/posts/lrc-detector-2-0-0). It covers how I check the lyrics these pipelines produce for errors.
 

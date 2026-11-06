@@ -17,7 +17,7 @@ I needed a catalog before I could experiment with worship sets. [Stream of Prais
 
 The first IDs included row numbers. Inserting a row upstream could change IDs on the next scrape, so those numbers weren't suitable for references from recordings and songsets.
 
-This post is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Why seamless worship transitions are hard](/posts/sow-why-transitions-are-hard). Next: [The analysis pipeline](/posts/sow-analysis-pipeline).
+This post is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Why seamless worship transitions are hard](/posts/sow-why-transitions-are-hard). Next: [Synced lyrics: generation and alignment](/posts/sow-lyrics-pipeline).
 
 <!-- more -->
 

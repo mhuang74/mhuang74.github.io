@@ -17,7 +17,7 @@ I need to compare the end of one recording with the start of the next. A song's 
 
 The transition code recommends a gap, crossfade, and possible key shift. Rendering is a separate step, and some saved settings still don't affect the audio. That distinction matters when auditioning a proposed set.
 
-This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Synced lyrics from messy sources](/posts/sow-lyrics-pipeline). Next: [The songset constructor](/posts/sow-songset-constructor).
+This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Running the Analysis Service: Modal apps and background jobs](/posts/sow-analysis-infrastructure). Next: [The songset constructor](/posts/sow-songset-constructor).
 
 <!-- more -->
 

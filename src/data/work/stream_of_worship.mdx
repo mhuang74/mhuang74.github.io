@@ -39,7 +39,7 @@ Three things shaped the project:
 
 **Make lyrics review part of the product**
 
-A video can render successfully and still be unusable for singing. Wrong characters and late lyrics are different problems, so I separated text correction from timing alignment. The pipeline uses available captions or ASR to get a first pass, corrects against the official lyrics, and supports a separate forced-alignment step for timing. Machine-generated files go into review before publication. I explain the tradeoffs in [Synced lyrics from messy sources](/posts/sow-lyrics-pipeline).
+A video can render successfully and still be unusable for singing. Wrong characters and late lyrics are different problems, so I separated text correction from timing alignment. The pipeline uses available captions or ASR to get a first pass, corrects against the official lyrics, and supports a separate forced-alignment step for timing. Machine-generated files go into review before publication. I explain the tradeoffs in [Synced lyrics: generation and alignment](/posts/sow-lyrics-pipeline).
 
 That made the review workflow worth improving. I added a lyrics editor and a review queue that prioritizes reported problems and songs people use. Listeners can report timing or text problems and leave a note about the affected lines. Feedback points me toward a correction; it doesn't overwrite the shared lyrics automatically.
 

@@ -1,12 +1,13 @@
 import type { CollectionEntry } from "astro:content";
 import getSortedPosts from "./getSortedPosts";
 
-const streamOfWorshipOrder = [
+export const streamOfWorshipOrder = [
   "sow-intro",
   "sow-why-transitions-are-hard",
   "sow-catalog",
-  "sow-analysis-pipeline",
   "sow-lyrics-pipeline",
+  "sow-analysis-pipeline",
+  "sow-analysis-infrastructure",
   "sow-transition-engine",
   "sow-songset-constructor",
   "sow-webapp-architecture",

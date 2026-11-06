@@ -17,7 +17,7 @@ I wanted to write down what I would keep after building Stream of Worship, and w
 
 The ten-phase outline is a useful way to follow the build: CLI and schema, catalog scraping, audio downloads, analysis jobs, CLI/service integration, lyrics generation, database migration, web app, render worker, and Android. It isn't a measurement of time spent or a claim that each phase finished before the next began.
 
-This post is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Going native: the Android client](/posts/sow-android-client). One more post follows after this: the lyrics-quality work that became Detector 2.0.0.
+This post is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Going native: the Android client](/posts/sow-android-client). Next: [Detector 2.0.0](/posts/lrc-detector-2-0-0).
 
 <!-- more -->
 
