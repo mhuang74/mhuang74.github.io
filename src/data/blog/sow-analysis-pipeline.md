@@ -24,8 +24,6 @@ This post is part of [Stream of Worship, a series](/posts/sow-intro). Previous: 
 
 ## Full and fast analysis
 
-_November 6 update: the deployment described here includes the October 24 move to Modal and the October 29 downbeat split, checked at the November 1 revision._
-
 The [full worker](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/analysis-service/src/sow_analysis/workers/analyzer.py) calls a Modal deployment for allin1 analysis and its internal Demucs separation. It receives tempo, beats, downbeats, sections, and embedding information. A local librosa pass adds duration, key, and an RMS-based loudness estimate. That last value isn't a calibrated integrated-LUFS measurement.
 
 Fast analysis stays local and produces duration, tempo, key, and loudness. The queue marks it `partial`; it doesn't upload a full analysis manifest. Its cache filename is separate from the full result, so a quick pass doesn't overwrite a more complete one.

@@ -33,8 +33,6 @@ The theme fallback combines title matches, lyric matches, song embeddings, and l
 
 ## What the current checks enforce
 
-_November 6 update: this section describes the November 1 implementation, including August constraint changes and September component support. The embedded July example below used an earlier version._
-
 The [validator](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/songset_constructor/rules/hard_constraints.py) has ten checks: cardinality H0, then H1–H9 for phase coverage, opening tempo, closing tempo, adjacent tempo delta, harmonic distance, duplicate songs, phase progression, key confidence, and total duration.
 
 Some details are easy to miss:

@@ -21,8 +21,6 @@ This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [The 
 
 <!-- more -->
 
-_November 6 update: this covers the November 1 code, including September's cache-first boot and media-error recovery changes._
-
 ## Bytes and bookkeeping
 
 [Cache Storage](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/webapp/src/lib/offline/artifact-cache.ts) holds complete audio, video, and chapter responses under stable keys derived from the render job ID. IndexedDB stores the songset name, job ID, artifact flags, and download time.
