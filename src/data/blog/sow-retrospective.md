@@ -21,8 +21,6 @@ This post is part of [Stream of Worship, a series](/posts/sow-intro). Previous: 
 
 <!-- more -->
 
-_Updated November 6, 2026: this review uses the November 1 source revision. October results and deployment changes below came after the original publication date._
-
 **Separate songs from recordings**
 
 A song has bibliographic identity. A recording has a hash of its audio bytes. Keeping them separate gives analysis and storage a stable reference even when catalog metadata needs correction.

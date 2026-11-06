@@ -21,8 +21,6 @@ This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Sync
 
 <!-- more -->
 
-_November 6 update: boundary-aware constructor scoring was added September 12. The details below are checked against the November 1 revision._
-
 ## Which measurements to compare
 
 [Component aggregation](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/songset_constructor/components.py) reads rows marked `entry`, `exit`, or `entry_exit`. If more than one row qualifies, occurrence index and row ID provide a deterministic choice. It doesn't search every possible join point.

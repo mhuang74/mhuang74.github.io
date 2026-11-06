@@ -21,8 +21,6 @@ This post is part of [Stream of Worship, a series](/posts/sow-intro). Previous: 
 
 <!-- more -->
 
-_Updated November 6, 2026: implementation details below refer to the November 1 source snapshot. Later changes are dated where they matter._
-
 ## Scraping the table
 
 The scraper looks for `tablepress-3`, then matches headers by Chinese or English keywords. That tolerates a column reorder. A missing table or lyrics column raises an error; other absent fields may be empty, and individual row failures are logged and skipped. It isn't a complete check that the upstream page still means what I think it means.

@@ -21,8 +21,6 @@ This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Offl
 
 <!-- more -->
 
-_Updated November 6, 2026: the implementation described here is the November 1 source snapshot. A buildable debug app isn't evidence of a public release._
-
 ## Start with the same origin
 
 The app uses OkHttp with a [persistent cookie store](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/android/app/src/main/java/org/streamofworship/android/core/session/SessionCookieStore.kt). It tries encrypted preferences first, but falls back to ordinary app-private preferences if encrypted initialization fails twice. Cookies can be restored after process death. Startup auth resolution needs to avoid treating an incidental unauthorized response as the final answer before restore completes.

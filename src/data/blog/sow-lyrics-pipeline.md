@@ -22,8 +22,6 @@ This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [The 
 
 <!-- more -->
 
-_Updated November 6, 2026: this describes the November 1 code, including October changes to remote inference and tail recovery._
-
 ## Try captions before transcribing
 
 The automatic path in the [job queue](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/analysis-service/src/sow_analysis/workers/queue.py) tries YouTube captions, then Qwen3 ASR when enabled, then Whisper. Manual upload is an operator action outside that automatic chain.

@@ -22,8 +22,6 @@ This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [The 
 
 <!-- more -->
 
-_Updated November 6, 2026: the paths below are from the November 1 revision. They describe the implementation, not a measurement of the deployed service._
-
 ## One backend, several clients
 
 The Next.js app serves browser sessions and JSON APIs. Android uses those APIs too. A Cast receiver is different: it needs a playable media URL without having to sign in to the app.
