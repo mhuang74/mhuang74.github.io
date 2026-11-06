@@ -21,31 +21,49 @@ import ShowcaseSetExplorer from "@/components/ShowcaseSetExplorer.astro";
 
 ## Problem
 
-Chinese worship teams have no tooling for the space _between_ songs. English-language worship has mature set-planning software; Chinese worship music （中文敬拜詩歌） lives in scattered catalogs with fragmented audio sources, no transition planning, and no offline-ready playback. Every Sunday, someone fumbles with a laptop between songs and the room loses the moment.
+I built [Stream of Worship](https://www.streamofworship.com/about) to help small group leaders play Mandarin worship songs without interruptions. Playing lyrics videos from YouTube means switching between songs and depending on the network to hold up. The pauses break the flow, and a dropped connection can leave everyone waiting.
 
-Goal: go from "here is my song list" to a seamless, offline-capable worship set — one continuous audio file plus a lyrics video with chapter markers — without manual audio engineering.
+There aren't many lyrics-video options for Mandarin worship. I wanted a leader to pick songs, render a continuous set with synchronized lyrics, and cast it to the TV. The output is one audio file and a lyrics video with chapter markers, ready for offline playback. No manual audio editing needed.
 
 ## Constraints
 
-Three hard realities shaped everything:
+Three things shaped the project:
 
-1. **Venue Wi-Fi is the least reliable thing in the room.** A worship set that stalls mid-service is worse than no system at all — offline playback was a launch requirement, not a nice-to-have.
-2. **Catalog data is messy.** Song titles mix Traditional characters and pinyin, tempo detection on worship arrangements is ambiguous (octave errors), and synced lyrics don't exist for most of the catalog.
-3. **Budget.** This is a solo side project — every GPU job and every render had to fit free-tier quotas and serverless cost envelopes.
+1. **Playback has to work offline.** The network problems were part of the reason for building this. Downloading the set before worship had to work from the start.
+2. **Accurate LRC files are hard to find.** The lyrics have to match what is actually sung in the recording, including every verse and chorus repetition, with an accurate timecode for each line. Getting both the words and timing right took a lot of work.
+3. **ASR still needs human review.** Automatic speech recognition (ASR) models made plenty of mistakes on the Chinese songs I worked with, even Alibaba's Qwen3 ASR. Creating an LRC file from scratch wasn't as simple as feeding the audio to Whisper or Qwen3. I needed to automate as much as I could and build a human-in-the-loop process to validate and correct the LRC files.
 
 ## Decisions
 
-- **Monorepo, hard boundaries (9 components).** Only the Dockerized Analysis Service may hold ML dependencies; the admin CLI and Android client are architecturally forbidden from touching Postgres, R2, or SQS directly (enforced by convention, documented in AGENTS.md). A solo multi-year project survives on boring, explicit interfaces.
-- **Transition quality is a boundary problem, not a song-level problem.** Compatibility is judged on the key a song _leaves through_ versus the key the next one _arrives through_, plus boundary BPM — whole-song averages produce jarring seams.
-- **Worship practice encoded as constraints.** Sets follow a fixed five-phase arc （讚美 → 感恩 → 敬拜 → 奉獻 → 差遣）; a beam-search songset constructor does constrained search over the catalog with a scored objective (theme, tempo flow, harmonic mix, diversity) and tunable hard-constraint relaxation.
-- **Domain priors beat generic models.** Tempo estimation adds worship-music BPM priors plus a lognormal prior derived from lyrics characters-per-second to resolve octave ambiguity that fools off-the-shelf estimators.
-- **A real ML pipeline is mostly plumbing.** The lyrics pipeline chains YouTube transcripts (with a circuit breaker) → cloud ASR → local Whisper → LLM alignment → a forced aligner; per-API quota waiters park jobs until free tiers reset; per-job-class semaphores keep batch backfill from starving live traffic.
-- **Serverless render pipeline.** Crossfaded multi-song MP3s and ~29 000-frame lyric MP4s render in an AWS Lambda container triggered via SQS, with SSE progress streamed to the browser — no long-running Vercel functions.
-- **Offline-first playback.** The web app caches rendered artifacts in a service worker (byte-range serving for large videos), and share links carry token-scoped _frozen_ copies so a shared set never changes under the recipient (ADR 0009).
+**Keep the components separate**
+
+The monorepo has 9 components. I kept ML dependencies in the Dockerized Analysis Service, and routed the admin CLI and Android client through APIs rather than letting them access Postgres, R2, or SQS directly. These boundaries are conventions documented in AGENTS.md. For a solo project I expect to maintain for years, I wanted the interfaces to be explicit.
+
+**Look at where songs meet**
+
+Whole-song key and tempo averages can produce jarring transitions. I use the key and BPM at the end of one song and the beginning of the next to judge how well they fit together.
+
+The songset constructor uses beam search to find sets across five worship phases （讚美 → 感恩 → 敬拜 → 奉獻 → 差遣）. It scores theme, tempo flow, harmonic mix, and diversity. Hard constraints can be relaxed through configuration when the search needs more room.
+
+**Give tempo estimation some context**
+
+Off-the-shelf tempo estimators can get confused by worship arrangements and return half or double the tempo. I added BPM priors for worship music, plus a lognormal prior derived from lyrics characters per second, to help resolve that ambiguity.
+
+**The lyrics pipeline needs fallbacks**
+
+The pipeline chains YouTube transcripts → cloud ASR → local Whisper → LLM alignment → a forced aligner. A circuit breaker handles repeated YouTube transcript failures. When an API hits its free-tier quota, jobs wait for the quota to reset. Separate semaphores for each job class keep catalog backfills from taking all the capacity needed by live requests.
+
+**Render in Lambda**
+
+An AWS Lambda container takes render jobs from SQS and produces crossfaded multi-song MP3s and lyrics MP4s of around 29,000 frames. The browser receives progress through server-sent events (SSE). This keeps the long-running render work out of Vercel functions.
+
+**Download the set before worship**
+
+The web app caches rendered files in a service worker, with byte-range serving for large videos. Share links point to frozen copies scoped to a token, so later edits don't change the set someone else received. I recorded that decision in ADR 0009.
 
 ## Showcase
 
-This is real output from the songset constructor's eval harness (`eval/run1_standard`, 2026-07-26): a beam search across a 438-song pool — 191,406 scored pairwise transitions — producing five ranked three-song sets. Pick a proposal to inspect its songs, transition notes, and objective scores.
+Here's output from the songset constructor's eval harness (`eval/run1_standard`, 2026-07-26). It searched a pool of 438 songs with 191,406 scored pairwise transitions and returned five ranked three-song sets. Pick a proposal to see the songs, transition notes, and scores.
 
 <div class="not-prose rounded bg-muted/40 px-3 py-1 font-mono text-[11px] text-foreground/60">
   Audio files are not committed to the repo — waveforms are illustrative. Song,
@@ -54,7 +72,7 @@ This is real output from the songset constructor's eval harness (`eval/run1_stan
 
 <ShowcaseSetExplorer />
 
-The ranking itself is the interesting surface: proposal 1 dominates on tempo flow (0.642 vs 0.526) and harmonic mix (0.780 vs 0.620), yet proposals 3 and 4 land within 0.15 composite using entirely different openings — and the constructor accepted a 4-second crossfade with a +1 semitone key shift into the closing song in proposals 2 and 5 rather than rejecting them. Ranked options with visible tradeoffs, not a single "best" answer, is the product.
+I think the ranking is the useful part. Proposal 1 scores higher on tempo flow (0.642 vs 0.526) and harmonic mix (0.780 vs 0.620), but proposals 3 and 4 come within 0.15 of its composite score with entirely different openings. In proposals 2 and 5, the constructor accepts a 4-second crossfade with a +1 semitone key shift into the closing song. These are tradeoffs a leader can inspect when choosing a set.
 
 ## Artifacts
 
@@ -65,5 +83,4 @@ The ranking itself is the interesting surface: proposal 1 dominates on tempo flo
 
 ## Outcome
 
-- Built to handle a 400+ song catalog with thousands of scored pairwise transitions (191,406 in the eval harness)
-- Process: ~500 spec docs with v1–v5 iteration chains, 11 ADRs, CI running real Postgres with pgvector, 150+ Vitest files on the web app alone.
+The system is built to handle a catalog of 400+ songs, with 191,406 scored pairwise transitions in the eval harness. The work includes ~500 versioned spec documents with v1–v5 iteration chains, 11 ADRs, and 150+ Vitest files for the web app alone. CI runs against a real Postgres instance with pgvector.
