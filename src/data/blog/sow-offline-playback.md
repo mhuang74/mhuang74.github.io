@@ -1,7 +1,8 @@
 ---
-title: "Offline worship playback: 500 MB videos, zero Wi-Fi"
+title: "Offline worship playback: downloading the player as well as the video"
 author: Michael Huang
 pubDatetime: 2026-08-25T00:00:00Z
+modDatetime: 2026-11-06T00:00:00Z
 slug: sow-offline-playback
 featured: false
 draft: false
@@ -9,83 +10,55 @@ tags:
   - stream-of-worship
   - web
   - offline
-description: "Service workers, byte-range serving, and an offline boot path that keeps worship playing when the Wi-Fi dies."
+description: "Caching rendered artifacts, serving byte ranges, and starting a downloaded set without a network."
 ---
 
-The offline requirement came from a specific room. A sanctuary with stone walls, a guest network that drops when two hundred phones join it, and a projector driven by a small PC. The worship leader had already downloaded the set that morning.
+A downloaded worship set should start and keep playing without Wi-Fi. Saving the MP4 is only part of that. The browser also needs the player page, its scripts, and enough metadata to find the right file.
 
-Then, mid-service, the laptop lost the network and the video stopped.
-
-That's the failure the whole offline path exists to prevent. A downloaded set plays to the end with zero network. That includes seeking, lyrics, and chapter markers. Everything in this post follows from taking that sentence literally.
+Seeking makes the requirement more interesting. A video element asks for byte ranges, so the service worker needs to answer those requests from the saved file too.
 
 This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [The web app](/posts/sow-webapp-architecture). Next: [Going native: the Android client](/posts/sow-android-client).
 
 <!-- more -->
 
-## The problem
+_November 6 update: this covers the November 1 code, including September's cache-first boot and media-error recovery changes._
 
-A browser is not a filesystem, and a service worker is not a media server. Three properties turn a simple idea into a design problem.
+## Bytes and bookkeeping
 
-Cache Storage is only enumerable by request URL. You can ask whether a specific request is cached. You can't ask which songset it belongs to, when it was downloaded, or what render job produced it.
+[Cache Storage](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/webapp/src/lib/offline/artifact-cache.ts) holds complete audio, video, and chapter responses under stable keys derived from the render job ID. IndexedDB stores the songset name, job ID, artifact flags, and download time.
 
-A video element issues byte-range requests. It fetches a few bytes, then a few more, then jumps to a different offset. If the service worker ignores the range header, seeking re-downloads the whole file on a network that may no longer exist.
+The resolver checks the actual cache before declaring a set playable. An index flag can survive after the browser evicts the bytes. Requesting persistent storage helps when the browser grants it, but the request can fail or be refused.
 
-The network tells you almost nothing reliable. A boolean saying you are online is the wrong type. Sometimes it lies. Sometimes it's false when cached playback is perfectly possible.
+The current budget helper warns at 500 MiB of estimated origin storage usage and refuses a new cache operation when usage is already at least 1 GiB. It doesn't reserve space for the incoming file or prove that the download will fit. The [cache tests](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/webapp/src/test/lib/offline/artifact-cache.test.ts) cover the implemented checks, not a guarantee against browser eviction.
 
-## What I built
+## Answer the range request
 
-### Two stores, two jobs
+The [service-worker handler](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/webapp/public/sw-artifact-serving.js) maps an artifact proxy URL to its saved response. A valid range returns status 206 with a slice of the body. A range starting past the end returns 416. Unsupported or malformed range syntax falls back to the full response.
 
-Bytes live in Cache Storage. Metadata lives in IndexedDB: which render job, which artifacts, when downloaded. Playability gets decided by asking the cache directly, not by trusting the metadata. Bookkeeping goes stale. A browser can evict a cache entry without telling the index.
+On a cache miss, the handler requests a complete file without the Range header. Only a full 200 response is stored; a partial file mustn't occupy a key that promises the whole video. There are [range-serving tests](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/webapp/src/test/lib/offline/sw-artifact-serving.test.ts) for those cases.
 
-### Serving byte ranges
+This lets a cached video seek without returning to storage. It still relies on the browser being able to read that cached body; storage can disappear between an index lookup and playback.
 
-The service worker maps proxy URLs to cached keys and serves ranges from the cached body. A range past the end returns a proper "unsatisfiable" response. An unparsable range returns the full body and lets the player sort it out. A seek produces a partial content response served entirely from cache.
+## Prepare the cold start
 
-The miss path fetches without the range header and stores only a full response. A partial response would poison the cache later. That's how a seek stops re-downloading.
+The [download helper](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/webapp/src/lib/offline/download-offline.ts) gets proxy URLs, requests persistent storage, caches artifacts, and writes the index. It then attempts to save the controller and worship-list documents. The [document helper](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/webapp/src/lib/offline/document-cache.ts) also warms their script, style, and font dependencies.
 
-### The download flow
+It rejects redirected or login-page responses so an expired session doesn't cache login HTML under the player URL. Downloaded controller documents use a route without the ordinary page cache's expiration policy.
 
-The order matters. Fetch the proxy URLs. Ask for persistent storage. Cache the artifacts. Write the index record. Cache the controller document. The last two are best-effort because the bytes are what matter.
+There is a limitation here: index writes and document warming are best-effort. The media can finish downloading while the work needed for a fresh offline launch fails. A successful download notification alone doesn't prove the whole offline workflow works. I would test opening the saved set with the network off on the actual playback device.
 
-The caps matter. There's a warning when a download is getting large and a hard refusal before the browser silently evicts something else.
+## Prefer the downloaded copy
 
-### A connectivity machine, not a boolean
+The current [playback core](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/webapp/src/hooks/usePlaybackCore.ts) checks for a usable downloaded copy even while online. If it finds one, that snapshot is what plays. With definitive OS-offline state, it attempts no boot API calls. Otherwise it can use the online chain and fall back to cache after a recoverable failure.
 
-The app doesn't trust a boolean. It asks the OS first. If the OS says there's no network, that's authoritative. Otherwise it probes. A probe that fails is treated as unknown for affordances, but only a definitive no network is allowed to skip API calls on boot.
+The decision is made for a boot, rather than restarting the player whenever connectivity changes. If online media fails later, the core makes one recovery attempt using the offline copy. The player preserves the failure position when resuming.
 
-The probe can't be answered from cache. Otherwise it would succeed offline and the machine would be lying.
+A local snapshot stays tied to its render job. A later edit or render doesn't alter the downloaded bytes, so updating the copy is a separate action.
 
-### Booting the controller
+## What the verification established
 
-When the app boots, it decides once and never re-decides.
+The [September recovery handover](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/reports/handover_offline_drop_recovery.md) records a forced media-error test that swapped to cached playback and resumed. It also records an important caveat: dropping the network didn't always reproduce a failure because Chromium's HTTP cache could keep serving the video.
 
-If there's definitively no network, it boots silently from cache and attempts no API fetches. If it's nominally online but the fetch chain failed, it falls back to cache and shows a toast, because silently watching a frozen snapshot without being told is a trap. If the network is fine, it behaves normally.
+The static-asset problem in that report concerned stable development chunk URLs serving mixed builds. It wasn't evidence that immutable production assets were generally broken. Some offline navigation checks were still affected by that development hydration problem.
 
-Deciding once is deliberate. A connectivity decision that re-runs on every state flip thrashes on a marginal network and reloads the video mid-song.
-
-### Staleness, deliberately unpursued
-
-A downloaded copy is a frozen snapshot. It pins the render job at download time. If the owner re-renders, the offline copy doesn't know. Rather than paper over it, the design states it and surfaces it on the landing page only.
-
-## What broke
-
-With an expired session, a request for the controller document got redirected to the login page. The service worker cached the login page. The next offline tap served a login page from cache with no way to log in.
-
-The document cache used an expiration policy for browsed pages, which silently evicted the controller while the artifacts survived. That left a lot of cached video that nothing could boot.
-
-The static asset cache got poisoned by a stale-while-revalidate strategy on immutable files. No amount of reloading fixed it until the files were excluded.
-
-A presigned URL expiring mid-service killed playback at an arbitrary timestamp. The recovery swaps to the cached artifact once per boot and resumes at the position captured at error time, not the start.
-
-Auto-caching after a render works only if the tab is still open. There's no server-side hook into the browser's cache.
-
-## What I would do differently
-
-Make the real-browser offline path a merge gate before shipping. Every failure here is invisible to a unit test and obvious to a browser with the network off.
-
-Document platform support in the download UI from day one. A disabled button with a reason beats a download that appears to succeed.
-
-Give every cache a documented lifetime and an owner. Two of these failures were expiration policies applied to the wrong kind of entry.
-
-Keep the index rebuildable. The metadata is derived data. Not providing a rebuild from cache action was an omission.
+The [cache-first handover](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/reports/offline-worship-simplification-handover.md) likewise reports passing unit checks and a build, with several browser scenarios still outstanding at that handover. Those records support the recovery design, but don't establish reliable offline playback on every target device. That's the part I still want a real-browser check to answer.

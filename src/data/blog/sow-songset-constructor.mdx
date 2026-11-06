@@ -1,7 +1,8 @@
 ---
-title: "The songset constructor: worship practice as a constrained search"
+title: "The songset constructor: searching within a worship arc"
 author: Michael Huang
 pubDatetime: 2026-07-28T00:00:00Z
+modDatetime: 2026-11-06T00:00:00Z
 slug: sow-songset-constructor
 featured: false
 draft: false
@@ -9,68 +10,54 @@ tags:
   - stream-of-worship
   - machine-learning
   - design
-description: "Encoding the five-phase worship arc, theme inference, hard constraints, and weighted fitness into a songset search."
+description: "A fixed phase template, deterministic checks, and a historical example of ranked songsets."
 ---
 
 import ShowcaseSetExplorer from "@/components/ShowcaseSetExplorer.astro";
 
-I wanted to build a tool to help put together worship sets. Picking good songs is only part of it. The sequence has to open with something the congregation can join immediately, move toward intimacy, and close ready for the benediction. All within twenty five minutes, using songs this church knows.
+I wanted to build a tool to help put together worship sets. Picking good songs is only part of it. I also want a useful order, manageable transitions, and a set that fits the available time.
 
-That gives me a constraint satisfaction problem, though judging the result is still a matter of taste. Asking a language model to propose a set seems straightforward, but it can put a slow ballad after a fast opener and give a convincing explanation without checking whether the transition works.
-
-In the constructor, code checks validity using measured features. The model proposes and annotates sets, but doesn't validate them.
+A language model can explain a proposed set convincingly without checking any of those details. So the constructor uses code to search, validate, and score. A model can help plan and annotate, but its explanation doesn't make a proposal valid.
 
 This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [The transition engine](/posts/sow-transition-engine). Next: [The web app](/posts/sow-webapp-architecture).
 
 {/* more */}
 
-## The problem
+## Choose the shape first
 
-Before I could search for sets, I had three things to work out.
+I use five phases: call, thanksgiving, worship, response, commission. The [fitness templates](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/songset_constructor/rules/fitness.py) are `(1, 4)` for two songs, `(1, 3, 5)` for three, `(1, 3, 4, 5)` for four, and all five phases for five songs.
 
-First, I needed a definition of a valid set. Much of worship practice isn't written down. Leaders know a set shouldn't open with a response song or close with a call to praise. I had to write down that arc before the tool could check it.
+Those are target shapes, not an exact phase requirement for every accepted proposal. The validators and relaxation settings permit variation. Counts outside two through five are rejected rather than silently shortened.
 
-The catalog also has no theme tags. To assign a song to a phase, I need its theme, and the source data doesn't provide one.
+The theme fallback combines title matches, lyric matches, song embeddings, and line embeddings. With component metadata, chorus classifications carry more weight than other sections, adjusted by confidence. It aggregates the votes; it doesn't simply assign the final chorus's theme to the whole recording. Tempo bands are a last fallback when theme evidence is absent.
 
-And a fitness function can only capture part of a leader's judgment. A search might score well by those rules and still produce a set a leader wouldn't choose. There needs to be a feedback loop.
+## What the current checks enforce
 
-## What I built
+_November 6 update: this section describes the November 1 implementation, including August constraint changes and September component support. The embedded July example below used an earlier version._
 
-### The arc as a template
+The [validator](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/songset_constructor/rules/hard_constraints.py) has ten checks: cardinality H0, then H1–H9 for phase coverage, opening tempo, closing tempo, adjacent tempo delta, harmonic distance, duplicate songs, phase progression, key confidence, and total duration.
 
-I used a fixed five-phase shape: call, thanksgiving, worship, response, commission. Each set size has a template. Two songs take slots one and four. Three songs take one, three, and five. Four and five fill in between. Six or more gets rejected, because I haven't defined a liturgical template for it.
+Some details are easy to miss:
 
-I wanted to fix the arc because inferring it from the selected songs would let the tool accept almost anything. With a fixed template, I can tell when the catalog doesn't have songs to fill it. The opener and closer tempo rules also depend on having a fixed phase order.
+- The default opener floor is 90 BPM; the closer ceiling is 90, or 80 in intimate mode. Boundary BPM is preferred for these endpoints.
+- Adjacent tempo delta is capped at 45 BPM when the incoming song has a positive gap or crossfade duration, and 40 otherwise. A gap alone qualifies for the wider allowance.
+- Harmonic distance defaults to three fifths steps. A positive crossfade duration or matching nonzero suggested shift can bypass the distance rejection.
+- Phase progression permits a one-phase backward step, considering primary and secondary phases. It isn't strictly monotone.
+- The 25-minute duration check sums whole-song durations. Unknown durations contribute zero, and gap/overlap time isn't part of that sum.
 
-### Themes
+Relaxation can widen tempo and harmonic limits and loosen phase coverage. The resulting settings belong with the output. In particular, a run configured with relaxed phase coverage shouldn't be described as having passed the strict template just because its warning list is empty.
 
-Themes are in Traditional Chinese, and each maps to exactly one phase. Several themes can share a phase. Worship, prayer, faith, and Holy Spirit songs all work in the worship slot. Commission, following, and revival all work at the close.
+## Ranking the valid proposals
 
-The system classifies sections of a recording first. A chorus carries more weight than a verse, adjusted by theme confidence. It treats a song whose final chorus is a commission as a commission song, because that's the part the congregation will sing last.
+The base weights are theme 0.40, tempo 0.30, harmony 0.20, and diversity 0.10. Energy and posture can each take 0.05, scaling down the base terms when present. Missing those signals doesn't mean the proposal is poor; it means the score has less information.
 
-Where the classifier has no data, the fallback combines four signals: title, lyrics, song embedding, and line embedding. When even that fails, tempo bands assign a phase. Fast songs go to praise. Slow ones go toward the close. This is a rough fallback to keep every song usable. I wouldn't expect it to be accurate.
+Scores depend on those choices. They aren't calibrated across different pools, feature coverage, and code versions. Even the energy function needs caution: its comment describes a softer landing, but its current arc expression penalizes an opener rank above the closer rank. I can't claim that it consistently rewards the intended decline.
 
-### Hard constraints
+The constructor has a deterministic path without an LLM. That makes it possible to inspect the search independently of the prose a model writes about the results.
 
-Nine constraints define a valid set. They cover set size, phase shape, opener tempo floor, closer tempo ceiling, adjacent tempo delta, harmonic distance, duplicate song guard, phase monotonicity, transposition safety, and total duration.
+## Example output from July 26
 
-Phase monotonicity means a set can jump ahead in the arc, but can't go back. For this template, praise after the response would break the progression.
-
-When no set satisfies all the constraints, the search relaxes them in stages and labels the output. It allows a wider tempo jump and harmonic distance together, since both make the transition more demanding. The opener floor and closer ceiling widen together too. I leave relaxing the phase shape until last, because keeping the arc is part of what I want the tool to do.
-
-### Fitness
-
-The score weights theme, tempo, harmony, and diversity, with energy and lyrical posture added when available. When energy or posture is unavailable across the pool, its weight is shared proportionally among the base terms. Weights always sum to one to keep scores comparable across runs.
-
-Tempo fit rewards smooth transitions and a soft landing. For energy, I use percentile ranks against the pool, since raw loudness isn't comparable between studio masters and live recordings. Posture fit uses a small lookup table for where a song belongs in the arc.
-
-### The language model's job
-
-The model plans and annotates. It doesn't reorder songs, approve sets, or compute scores. There's also a deterministic fallback that runs without a model. I use that to check whether I've kept the search independent of the model.
-
-## Example output
-
-Here's output from the constructor's eval harness (`eval/run1_standard`, 2026-07-26). It returned five ranked three-song sets. Pick a proposal to inspect the songs, transition recommendations, and scores.
+This is the saved `eval/run1_standard` run: five ranked three-song proposals from a pool of 438. The [run review](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/eval/run1_standard/songset_review.md) records `no_llm=True`, `auto_relax=True`, and `relax_h1=True`. It came from deterministic beam ranking, with phase coverage already relaxed.
 
 <div class="not-prose rounded bg-muted/40 px-3 py-1 font-mono text-[11px] text-foreground/60">
   Audio files are not committed to the repo — waveforms are illustrative. Song,
@@ -79,30 +66,10 @@ Here's output from the constructor's eval harness (`eval/run1_standard`, 2026-07
 
 <ShowcaseSetExplorer />
 
-The scores show how the search compares proposals, but don't tell me how the sets sound. Key shifts shown here are recommendations; the renderer doesn't apply pitch shifting or tempo matching. Without audio and listening evaluations, I can't say that the highest-ranked proposal makes the best worship set.
+These are historical outputs. The values haven't been regenerated with November's rules, and the waveform illustrations aren't audio evidence. Key shifts are recommendations; the render worker doesn't apply them.
 
-## What broke
+## Better input helped more than another explanation
 
-My first diversity calculation gave every proposal the same score. I counted non-zero entries in the theme distributions, but every song's distribution was dense. So the term used up some of the weight without helping compare sets. I changed it to measure distance between distributions instead.
+The [Traditional Chinese comparison](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/reports/enrichment_eval_comparison.md) kept the same 438-song pool and increased title theme hits from 76 to 106 and lyric hits from 342 to 372 after vocabulary normalization. That is evidence of better matching coverage, not evidence of better worship sets.
 
-Some runs couldn't fill a phase because the catalog had no qualifying songs. That looked like a bug at first, but the search was correctly reporting that it couldn't fill the template.
-
-A cache written before component metadata existed still produced valid-looking scores using old features. Nothing errored. Versioning the cache namespace fixed it.
-
-Running with the wrong interpreter wrote an empty output file, and parsing failed two steps later. I needed to check the output file's structure before passing it along.
-
-Converting the corpus from Simplified to Traditional increased title and lyric matches significantly. The constructor had been working with only a fraction of the available evidence. Better input changed the scores.
-
-## What I would do differently
-
-I would collect human set-quality ratings before tuning weights. I chose the initial weights by judgment, and so far I've checked each adjustment against another judgment.
-
-I'd also define templates for longer sets. Right now the tool silently caps a long service at five songs.
-
-Before running the search, I'd check whether the pool has qualifying songs for each phase. That would let the operator know when a phase can't be filled without waiting for a run.
-
-I'd put the diversity calculation in its own module and document its units in the interface. That should make it harder to accidentally reimplement it differently elsewhere.
-
-## Next Steps
-
-Gather feedback on auto-constructed songsets by giving them out for free.
+I would collect listening feedback before tuning the weights much further. Giving leaders a few proposed sets to try would tell me more than another round of scoring the same proposals by my own rules.

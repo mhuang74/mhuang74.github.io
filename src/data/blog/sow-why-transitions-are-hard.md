@@ -2,6 +2,7 @@
 title: "Why seamless worship transitions are hard"
 author: Michael Huang
 pubDatetime: 2026-05-19T00:00:00Z
+modDatetime: 2026-11-06T00:00:00Z
 slug: sow-why-transitions-are-hard
 featured: false
 draft: false
@@ -9,84 +10,43 @@ tags:
   - stream-of-worship
   - building
   - worship
-description: 'What makes song-to-song flow a constrained musical problem, and what "seamless" has to mean for a worship leader.'
+description: "What I need to know about two recordings before joining them into a worship set."
 ---
 
-A worship set is not a playlist. It's one arc made of separate songs, and the thing that carries the arc, or kills it, is the few seconds in between.
+I want Stream of Worship to join Chinese worship recordings into a set that a small group can play without managing a browser between songs. A crossfade helps with the silence. It doesn't tell me whether the next song starts in a compatible key, or whether two voices will overlap.
 
-Anyone who has led or sat through a modern worship service has watched it break. The band finishes. The leader turns to a laptop. The screen lands in a file browser. Forty seconds of silence later the next song starts from a cold stop in a different key. Attention that was pointed at one thing scatters. When it comes back, it comes back to a performance instead of to worship.
-
-In principle those forty seconds are a solved problem. Crossfade, match the key, match the tempo. In practice it's hard, and this post explains why.
+So before building a mixer, I needed to decide what makes a useful transition. Nothing as ambitious as replacing a worship leader's judgment. I just want the software to catch some poor combinations and make the remaining ones easier to audition.
 
 This is part of [Stream of Worship, a series](/posts/sow-intro). Next: [Building the catalog](/posts/sow-catalog).
 
 <!-- more -->
 
-## The problem
+## Start with the two ends
 
-Sequence four songs by feel and you make a hundred micro-decisions without noticing. This one ends big, so the next should start big. These two share a key. This one shouldn't follow that one, because the congregation needs a breath first. A worship leader does all of that in their head, in real time, off the lyrics, the arc, and the room.
+A catalog usually gives me one key for a song. A recording can change key before its final chorus. Comparing that recording's opening key with the next song's opening key misses the part I'm actually joining.
 
-My software has none of that context. What it has, or can compute, is tempo, key, section boundaries, loudness, and some idea of theme. Turning that thin signal into decisions that don't fight the leader's instincts is most of the work.
+Tempo has the same problem. A whole-track estimate is useful for browsing, but a slow intro and a faster ending need separate estimates if I'm going to compare them. Section boundaries matter too. Overlapping two instrumental passages is a different edit from overlapping two choruses.
 
-The hard part is the seam. A song can be analyzed perfectly and still join badly, because the analysis often describes its middle instead of its edges.
+The [boundary comparison code](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/songset_constructor/rules/transitions.py) added in September uses an exit key and an entry key when both are available. Otherwise it compares song-level keys on both sides. Keeping those sources visible helps explain a recommendation. It doesn't make the estimates correct.
 
-## Four things that make a seam hard
+## A set needs more than compatible pairs
 
-### Harmony
+I use a five-phase arc: call, thanksgiving, worship, response, commission. That's the shape I chose for this tool. Other services may need something different.
 
-Two songs in unrelated keys can be joined, but not invisibly. The real question is not "what key is song A in". It's "what key does song A leave through, and what key does song B arrive through". A song that modulates up for the final chorus leaves through the modulated key. The next song has to relate to that key, not the opener.
+The constructor favors a stronger opening and a calmer closing, with themes and lyrical posture helping place songs along the way. A song addressing God and a song asking the congregation to respond may have similar musical features but different uses in a set.
 
-I measure harmonic distance by counting circle-of-fifths steps, with two hard limits. Transposition stays within two semitones either way, because past that a congregation is guessing, not singing. And a song never gets transposed on a weak key estimate, because acting on a coin flip is worse than not acting.
+These are rules I can encode and adjust. They aren't facts an audio model can discover on its own, and passing them doesn't establish that a set will work for a particular congregation.
 
-### Tempo
+## The source data needs work first
 
-Tempo has the same average-versus-boundary problem. A song that starts at 72 BPM and ends at 88 has a mean of 80 that describes neither end. Adjacent songs get gated on exit tempo against entry tempo, with a max gap of 45 BPM when a crossfade can absorb it and 40 BPM when there's a hard cut.
+For the catalog I started with, [Stream of Praise’s song table](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/services/scraper.py) supplies titles, credits, keys, and plain lyrics. It doesn't supply synchronized lyrics or the theme labels the constructor needs.
 
-Arc shape adds two more rules. The opener has to arrive fast enough to invite the congregation in. The closer has to leave slow enough to let the service end. Those are liturgical rules, not mixing rules, and they matter more than any crossfade trick.
+Traditional Chinese is the project's canonical text. Other sources may use Simplified Chinese, and pinyin needs a small correction for the honorific 祢. These details affect search and matching before any musical decision happens. They're problems in this catalog, rather than reasons to assume all Chinese music tools have the same limitations.
 
-### Structure
+## What I mean by seamless
 
-A transition has to land on a musical boundary. Cutting into the middle of a chorus is worse than a bad key change, because the congregation hears the edit as a mistake. Whole-song averages hide the cases that matter most: quiet intros, loud final choruses, held pads, fades. The engine scores the exit of one song against the entry of the next for exactly that reason.
+I want a continuous audio or video file, with transitions I can listen to before using it. Lyrics should clear during a long instrumental instead of leaving the previous line on screen. And a prepared download should play without a network connection, including when the player starts offline.
 
-### Energy and lyrical posture
+Those are goals for the whole workflow. The implementation still has gaps. As of November 1, the renderer applies gaps and crossfades, but doesn't apply the stored key-shift or tempo-ratio settings. A recommendation to transpose is therefore something to review, not evidence that the rendered audio changed key.
 
-The set should land softer than it opens. Praise moves toward intimacy, not away from it. Energy becomes a rank against the song pool, not an absolute loudness number, because a studio master and a live recording aren't comparable in raw decibels.
-
-Lyrical posture constrains it further. A song that speaks to God belongs in worship. A song that commissions the congregation belongs at the close. That part is closer to theology than to signal processing, which is why the arc stays fixed instead of learned.
-
-## Why Chinese worship is different
-
-Almost every assumption a Western music tool makes about its data fails here.
-
-There's no API. The catalog is one HTML table on the publisher's site. There are no theme tags. Traditional Chinese is canonical, whatever the interface locale is. Search runs through pinyin, and the honorific needs explicit handling because naive romanization makes titles unsearchable. Timed lyrics don't exist upstream at all.
-
-## What seamless has to mean
-
-I had to turn "seamless" into acceptance criteria or it couldn't be built or tested. Five of them, each falsifiable:
-
-1. No dead air. The gap between songs is bounded and musical.
-2. No audible modulation at the seam. Keys are compatible, transposed within limits, or the technique changes.
-3. No stale lyrics during instrumental passages. A long instrumental gets a blank line, not a frozen one.
-4. One continuous file. A single MP3 or MP4, not a playlist.
-5. It plays with zero network. Venue Wi-Fi is the least reliable component in the room.
-
-None of these are about audio quality in the abstract. All five are about what the congregation experiences.
-
-## The decomposition
-
-Six subproblems, each hard on its own, each with its own post:
-
-- Catalog and identity: no API, unstable IDs, duplicate audio, two scripts.
-- Analysis: expensive models, boundary features, cache correctness.
-- Timed lyrics: no timings exist upstream, so they get manufactured.
-- Transition scoring: boundary keys and tempos, technique selection.
-- Set construction: encode the arc and search under constraints.
-- Delivery: serverless rendering, projection, offline playback.
-
-I didn't get to pick the order. Scoring needs boundary keys, which need analysis, which needs audio, which needs identity. Most of the delay was in the dependency chain, not the hard parts.
-
-## What is next
-
-The next post is the least glamorous part and the one everything else stands on: getting the catalog and its identities right. Every number in this post hangs off a recording that has to be addressable and stable. If the IDs shift, the keys point at nothing.
-
-[Read it: Building the catalog](/posts/sow-catalog)
+The work has to happen in order: identify the recording, analyze it, align its lyrics, compare transitions, then render and deliver the set. Next is [building the catalog](/posts/sow-catalog), starting with IDs that survive another scrape.

@@ -2,6 +2,7 @@
 title: "Ten build phases: what Stream of Worship taught me"
 author: Michael Huang
 pubDatetime: 2026-09-22T00:00:00Z
+modDatetime: 2026-11-06T00:00:00Z
 slug: sow-retrospective
 featured: false
 draft: false
@@ -9,73 +10,63 @@ tags:
   - stream-of-worship
   - building
   - retrospective
-description: "Ten phases and a year of evenings and weekends built Stream of Worship. Here is what worked and what I would do differently."
+description: "What I would keep, what I would simplify, and which results still need listening tests."
 ---
 
-Ten build phases, about a year of evenings and weekends, and one working system. Stream of Worship now holds a catalog of Chinese worship songs, a pipeline that turns audio into tempo, key, structure, and stems, a set constructor that follows a liturgical arc, a serverless renderer, a web app, and two offline clients.
+I wanted to write down what I would keep after building Stream of Worship, and what I would change if I started again. The project now covers catalog ingestion, analysis, lyrics, set construction, rendering, and playback. Getting those pieces to agree took more work than any one algorithm.
 
-Now that it works, I wanted to write down which decisions I would make again and which ones I would skip. Mostly so I don't repeat the expensive mistakes.
+The ten-phase outline is a useful way to follow the build: CLI and schema, catalog scraping, audio downloads, analysis jobs, CLI/service integration, lyrics generation, database migration, web app, render worker, and Android. It isn't a measurement of time spent or a claim that each phase finished before the next began.
 
 This post is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Going native: the Android client](/posts/sow-android-client). One more post follows after this: the lyrics-quality work that became Detector 2.0.0.
 
 <!-- more -->
 
-## Ten phases
+_Updated November 6, 2026: this review uses the November 1 source revision. October results and deployment changes below came after the original publication date._
 
-Here are the phases in order: a CLI scaffold and database schema. Scraping the catalog. Downloading recordings. An analysis service with job queues. Wiring the CLI to the service over HTTP. Lyrics generation. A database migration. The web app. A render worker. Android.
+**Separate songs from recordings**
 
-The build order wasn't the difficulty order, or the value order either. The first three phases produced nothing visible. The last three made the product usable by another person. The middle ones carried most of the risk.
+A song has bibliographic identity. A recording has a hash of its audio bytes. Keeping them separate gives analysis and storage a stable reference even when catalog metadata needs correction.
 
-## What worked
+The [April 28 migration record](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/reports/handover_db_migration_song_ids.md) is a useful reminder of why this matters: 685 rows became 581 active songs and 104 soft-deleted duplicates, with all 21 recording references valid afterward. Those are migration counts. They shouldn't be combined with later review or download counts as if they were one current catalog snapshot.
 
-Content addressing turned out to be my best decision. A recording's primary key is the SHA-256 of its audio bytes. Dedup, storage layout, analysis caching, and the transition matrix all key off content, not identity or time. Add a song twice and nothing happens. Re-analyze and you get the same cache key. A stale row never points at bytes it was not analyzed from.
+Content hashes don't solve all cache problems either. Model versions, prompt versions, and output schemas still need their own invalidation rules.
 
-The transition engine scores the exit of one song against the entry of the next. I only got there after listening to one bad transition and realizing the numbers were describing the wrong thing.
+**Keep judgment and explanation separate**
 
-In the songset constructor, the LLM proposes and annotates. Hard constraints and a fixed fitness function decide validity, with no model in that path. Take the API key away and it all still works, which I think is the real test of this split.
+The constructor can search and rank without a model. The model's explanation isn't what makes a proposal pass. I would keep that split.
 
-Offline was a launch requirement from day one. "Plays with zero network" stayed an invariant the whole time, and it shaped the service worker and the Android download path. Bolt those on later and you end up rewriting them.
+The [July 26 example](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/eval/run1_standard/songset_review.md) generated five proposals from 438 candidates with no LLM and relaxed phase coverage. It demonstrates a runnable search, not that a congregation preferred the output. I still need listening feedback before treating a score improvement as a product improvement.
 
-Only one box runs the GPU work. The analysis service is the only piece that imports machine-learning libraries. The CLI and the Android app never touch the database or the queue; they just call APIs. That's how a container with a 12 GiB model moved off my machine without me touching anything else.
+The same applies to boundary scoring. Comparing an exit with an entry is useful, but missing BPMs and uncertain keys still reach the rules. A precise-looking score can hide incomplete input.
 
-The lyrics-quality work measured every improvement against a frozen validation set, not against the data that inspired the change. That's the only reason I trust those numbers.
+**Use the interface people need**
 
-## What I would change
+The repository retains a legacy CLI/TUI, a later user TUI, and the web app. The terminal tools are useful for operating and inspecting the pipelines. I would put the phone workflow first for someone preparing a worship set.
 
-I built two terminal UIs before the web app. The first was a Textual app, the second replaced it, and then the web app replaced both. Two throwaway UIs is at least one too many. The TUI was handy for poking at pipeline stages, but a terminal UI for a phone-first workflow was just the wrong category to build. It took me months to figure that out.
+I would also choose the shared database earlier. The project moved from SQLite-based storage to Postgres, with separate clients for the admin tools, web app, and render worker. The CLI isn't merely an HTTP client: it still performs database and storage operations. Android is the client that stays behind the web APIs.
 
-I started on the wrong database. The first data layer was hosted SQLite. Moving to Postgres took one runbook through four versions, three separate client stacks, and a vector-index migration. Postgres was the right call; I just should have picked it on day one and skipped the whole migration phase.
+**Benchmark before replacing a working tool**
 
-I benchmarked rclone against boto3 before adopting it, and rclone lost every time. The interesting part is why. R2 caps aggregate throughput per account on this workload, so adding workers past eight does nothing. Push higher and throughput actually drops, because the fixed cap gets split across more streams with more protocol overhead. So: measure first, then decide. Parallelism is a resource decision, not a dial.
+The [June 20 backup benchmark](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/reports/admin-r2-backup-rclone-download-v1-results.md) didn't meet the threshold for switching from boto3 to rclone. Its single-connection boto3 diagnostic reached 7.85 MiB/s; the tested rclone configurations were slower, so the proposed production changes stopped there.
 
-The original design doc dreamed too big. It specified a pile of components: madmom, pyrubberband, Celery, Redis, sub-two-second rendering, nearly automatic everything. What shipped is smaller on every axis, with recommendations a human accepts or overrides. The ideas weren't wrong about what would be nice. They were just more than one person can keep alive.
+The report called this an account-level cap. The measurements establish a bottleneck on that client and network path, but don't isolate Cloudflare's account policy from the rest of the path. I'd keep the decision and narrow the explanation: rclone didn't help this workload in that test.
 
-The web app's README documented a server-sent-events progress endpoint. That route doesn't exist. The client polls every 10 seconds. It's the cheapest mistake in the repo and the one that bothered me the most. You trust the docs, lose an hour, and after that you don't trust any of them.
+**Check the path that runs**
 
-The UI sells knobs the renderer ignores. Key shift and tempo ratio persist, edit, and display in the web app, but the render worker applies neither. So a saved plan can promise a transposition the audio never delivers. Don't ship a control whose value can't change the output.
+The web client polls render status every ten seconds, while the README lists an SSE route that doesn't exist. The Android tree contains a background playback service the current video screen doesn't use. The renderer stores key shift and tempo ratio without applying either.
 
-The Qwen3 tail experiment half-works. Some recordings have a caption track that ends before the vocals do, so I tried recovering the missing lyrics with Qwen3's audio mode. It fired on more than half the eligible jobs and got something back on most of those. But most of its raw attempts came back as junk, and Whisper still needed the better part of a minute per recovered line. I'll keep both paths, but the Qwen3 tail is definitely the weak one.
+All three make the system harder to understand by reading its surface. The unused render settings matter most to the user: a saved transposition can pass a planning rule and still leave the audio unchanged. I would resolve that before adding another recommendation feature.
 
-## By the numbers
+**Date the expensive experiments**
 
-A few numbers stand on their own. The scrape pulled in 685 catalog rows, including 104 duplicates I soft-deleted, leaving 581 active songs. They have 444 recordings attached, and only 74 published. The rest sit in review. The transition engine precomputes compatibility for every ordered pair in the usable pool, so the constructor draws on roughly 438 songs without pausing to measure anything.
+The [October 20 tail-recovery run](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/reports/tail-lyrics-recovery-report.md) appended 43 lines across 22 jobs. Qwen3 was often unusable on the short, repeated endings, and local Whisper recovered most of those lines. The report is log-derived, includes an interrupted attempt, and doesn't establish correctness for every appended line.
 
-## What is next
+Later in October, Whisper and full analysis moved to Modal. The older timings therefore describe an earlier deployment, not the current cost of the pipeline. The analysis service now orchestrates remote models; it isn't the one machine doing all the GPU work.
 
-Timbre. Every measure in the transition engine describes pitch and time. Nothing describes sound. Two songs a fourth apart with different production still clash. Timbre distance feels like the biggest missing signal.
+**Test the downloaded workflow**
 
-Chorus-to-chorus joins. The engine assumes transitions land on section boundaries. That holds most of the time, but it fails in the case that matters most: the end of one chorus straight into the start of another. Picking the join point inside that overlap is a search problem, and the current version just pretends it doesn't exist.
+Browser downloads need more than media bytes. Player documents and scripts have to survive too, and some preparation remains best-effort. Android's DownloadManager path has different lifecycle and metadata concerns. I'd keep testing them as separate workflows.
 
-A bad-transition filter that explains itself. "Too close sounds bad" is real, and I still can't say why. A filter that flags the transition and names the guilty feature would turn a hunch into something I can actually debug.
+Next I'd collect human ratings of rendered transitions, fix the controls the renderer ignores, and make cold offline launch a repeatable device check. Timbre and chorus-level join-point search are interesting additions, but I first want to know how often a leader accepts the simpler output.
 
-Longer sets and other languages. The arc has no template past five songs, so long services stay out of reach. And this whole build, Traditional Chinese canonical with pinyin as the bridge, is a recipe other languages can follow.
-
-## Closing
-
-The system is open source at [mhuang74/stream_of_worship](https://github.com/mhuang74/stream_of_worship). The [user guide](https://streamofworship.com) covers the worship-leader workflow, and the [series introduction](/posts/sow-intro) maps every post.
-
-Two things surprised me looking back at the whole build.
-
-The hard problems were never where I expected them. I thought the DSP would be the hard part. It wasn't; identity was. Stable song IDs, content-hashed recordings, provenance that survives a cache purge, a system that says "I don't know" instead of guessing. The DSP turned out to be mostly librosa and FFmpeg calls, and I would write those the same way again.
-
-The second surprise: it's cheap to make a system honest while you're building it, and painful to fake it later. Every failure I fixed cheaply, I fixed by making the system admit something. A warning that names the missing boundary tempo. An index that says "review" instead of "published". A README that says "polling". The places where I let the system promise more than it delivered were the ones I paid for later.
+The project is open source at [mhuang74/stream_of_worship](https://github.com/mhuang74/stream_of_worship). The [source snapshot](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/README.md) and [series introduction](/posts/sow-intro) have the project map. The [user guide](https://streamofworship.com) covers preparing a set.
