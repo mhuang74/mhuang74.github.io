@@ -56,7 +56,7 @@ The number of clusters took some tuning. Using only the silhouette score produce
 
 Testing with real Chinese worship songs exposed one obvious problem. A jump could leave or land in the middle of a sentence. The audio transition might sound fine, but the resulting lyric made no sense. You don't notice this with dance and rock songs playing forever in the background, but using the same technique to extend worship songs where lyrics meaning carry significant weight interrupts the worship experience.
 
-I added a filter that keeps jumps close to lyric line boundaries. It helped, although less than I hoped. There were fewer broken sentences, but a clean lyric boundary did not automatically make a jump keep the flow going, even for faster worship songs. 
+I added a filter that keeps jumps close to lyric line boundaries. It helped, although less than I hoped. There were fewer broken sentences, but a clean lyric boundary did not automatically make a jump keep the flow going, even for faster worship songs.
 
 Slower songs with sparse arrangements tend to have fewer interchangeable beats. Faster, simpler, and more repetitive songs usually work better. I think song selection may matter as much as more algorithm tuning. Some songs just may not be a good fit for infinite playback.
 
