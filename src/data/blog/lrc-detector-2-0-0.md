@@ -22,15 +22,52 @@ This post is part of [Stream of Worship, a series](/posts/sow-intro), following 
 
 <!-- more -->
 
-_Verification note, November 6, 2026: the [November 1 source snapshot](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/README.md) doesn't contain the Detector 2.0.0 implementation, fitted model, quiz sidecars, or the evaluation artifacts behind the examples below. The workflow and outputs here are retained from the recorded examples for this post; their exact implementation and scores haven't been independently reproduced. The repository's [TTS round-trip scorer](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/lab/poc-scripts/score_lrc_quality.py) is a different experiment._
+## How it works
 
-## Compare the words and the clock
+There are three sides to the detector: a trained model that starts with the LRC text, a hand-built model of common defects, and lyrics quizzing against the recording. The earlier revisions describe the following scoring process.
 
-An LRC line has a timestamp and text. The working detector description separates defects in the words from defects in their timing. Repeated lines, encoding damage, long gaps, and poor coverage are useful clues from the LRC alone. A transcript adds evidence about what was sung and when.
+**The LRC text and alignment model**
 
-The alignment matches ordered blocks of lyric lines with consecutive transcript segments. It preserves order and avoids reusing a segment. Repeated choruses make that tricky: the same words can match well in several places. A pairing prior prefers a nearby occurrence when the text is also sung near the lyric's timestamp.
+An LRC line has a timestamp and text. First, the detector sorts the timestamped lines. A line containing only `自由宣告` or `自由敬拜` gets its text blanked, because it marks an unscripted section rather than a lyric. It then extracts 23 features from the LRC alone: duplicate and repeated lines, gaps, implied line durations, timestamp inversions and overlaps, encoding damage, and coverage of the audio duration. These also produce a summary score, `a_score`.
 
-The recorded workflow combines a fitted model score with hand-built evidence for content mismatch, drift, absolute offset, scattered timing, and duplicate mismatch. Audio-model quiz sidecars can raise suspicion when they reject a line. A recording is flagged `poor` at a score of 0.65 or above in these examples, with subtype `text`, `timing`, or `both`.
+The text alone can't tell me whether the right words appear at the right time. So the detector also compares the LRC with an automatic speech recognition (ASR) transcript. Before alignment, it drops suspected transcription artifacts such as watermarks, low-confidence silence, and short phrases repeated to fill a segment.
+
+The aligner matches blocks of 1–2 lyric lines with blocks of 1–5 consecutive transcript segments using fuzzy text similarity. It preserves order and doesn't reuse a segment. Repeated choruses make that tricky: the same words can match well in several places. If a match starts more than 8 seconds from the lyric's timestamp while the same words are also sung within 8 seconds of it, a pairing penalty favors the nearby occurrence.
+
+That comparison supplies another 18 features: the share of lines matched, typical timing offset and its spread, the share off by more than 1 or 2 seconds, drift per minute, uncovered vocal time, repeated-line count differences, and distance to the nearest beat when a beat grid is available. These produce `b_score_fb`.
+
+The trained model uses all 43 inputs: the 23 LRC features, 18 alignment features, and the two summary scores. Missing values are filled with training medians, the inputs are standardized, and a fitted logistic regression returns `model_risk` between 0 and 1. The fitted constants are embedded, so scoring only needs a numpy dot product and a sigmoid.
+
+**The hand-built model**
+
+Separately, five kinds of evidence get their own scores between 0 and 1: content mismatch, drift, absolute offset, scattered timing, and duplicate mismatch. Each uses a hyperbolic-tangent curve against reference ranges fixed from an earlier sample. Their weighted sum is `evidence`:
+
+```text
+evidence = 0.30 × content_mismatch
+         + 0.25 × drift
+         + 0.15 × absolute_offset
+         + 0.15 × scattered_timing
+         + 0.15 × duplicate_mismatch
+```
+
+For recordings with audio alignment, the detector takes the higher of `model_risk` and `evidence`. A strong warning from the hand-built model can therefore raise a low trained-model score.
+
+**Lyrics quizzing against the audio**
+
+The ASR comparison above checks lyrics against a transcript. The quiz adds questions to an audio model about the recording itself, with answers saved in pre-computed sidecar files. The base quiz asks whether each key lyric line is audible anywhere in the recording. If `q_key_frac` is the share found, then `q_risk = 1 − q_key_frac` is the share missing.
+
+A second quiz checks individual lines near their timestamps. It cuts a short audio clip, presents the expected line and a decoy, and asks which one is sung. The original probe and two independent repeats give three votes. Two rejections at confidence ≥ 0.90 confirm a mismatch and raise the recording's score to at least 0.99. Where the expected words appear in the transcript helps classify the defect as text or timing.
+
+**The final score**
+
+The quiz scores act as floors. They can raise suspicion, but they can't cancel a warning from the other two models. For a recording with alignment and a readable base quiz, the combination is:
+
+```text
+confidence = max(model_risk, evidence, q_risk)
+confidence = max(confidence, 0.99)  # if the line quiz confirms a mismatch
+```
+
+At **0.65 or above**, the recording is flagged `poor`, meaning Poor LRC quality. Below 0.65, it is called `good`. Poor recordings can also have subtype `text`, `timing`, or `both`; text and timing findings from the evidence rule and quiz gate are combined when they disagree.
 
 I use that score to order review. `confidence: 0.95` shouldn't be read as a demonstrated 95% chance that a file is bad. That would need a labeled evaluation and calibration results. The same transcript contributing to a score and explaining it isn't independent confirmation either.
 
