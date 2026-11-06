@@ -1,7 +1,8 @@
 ---
-title: "The analysis pipeline: beats, keys, and stems on a GPU budget"
+title: "The analysis pipeline: beats, keys, and a separate GPU worker"
 author: Michael Huang
 pubDatetime: 2026-06-16T00:00:00Z
+modDatetime: 2026-11-06T00:00:00Z
 slug: sow-analysis-pipeline
 featured: false
 draft: false
@@ -10,87 +11,49 @@ tags:
   - machine-learning
   - python
   - audio
-description: "How audio becomes tempo, key, beats, sections, and stems, and why the heavy models live outside the web request path."
+description: "Full and fast audio analysis, key voting, and the limits of the job and cache recovery paths."
 ---
 
-The most expensive operation in Stream of Worship is asking a song how fast it is.
+Comparing recordings takes a few measurements first: tempo, key, and section boundaries. Running the full analysis every time someone opens a song would make browsing unnecessarily slow, so the results belong in a background pipeline with a cache.
 
-Before a song can be sequenced against another one, the system has to know something true about it. How fast it is. What key. Where its sections start. Where the vocal ends. A worship leader knows all of that by ear. My software needs it as numbers, attached to a specific recording, recomputable, and cached.
-
-Getting those numbers is the most expensive thing in the project. One full analysis loads music-structure models, separates four stems, runs key detection, and writes a manifest: minutes of GPU time per song. With hundreds of recordings in the catalog, the first design constraint falls out on its own. Analysis can't happen inside a web request, and it can't happen on a box that's also serving traffic.
+There are two useful levels of detail. A quick pass makes a recording searchable and roughly comparable. Full analysis adds the beat grid, structure, and embeddings needed for more detailed work.
 
 This post is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Building the catalog](/posts/sow-catalog). Next: [Synced lyrics from messy sources](/posts/sow-lyrics-pipeline).
 
 <!-- more -->
 
-## The problem
+## Full and fast analysis
 
-My first version ran Whisper inside the same container as everything else. It used so much memory that the kernel killed the whole container, queue state and all. That accident defined the architecture.
+_November 6 update: the deployment described here includes the October 24 move to Modal and the October 29 downbeat split, checked at the November 1 revision._
 
-The shipped container is CPU-only, carries one lightweight library for spectral work, and exists to orchestrate. Everything that needs a GPU or more than a gigabyte of weights lives somewhere else. There's no in-container fallback on purpose. If the remote inference layer is unreachable, the job fails and retries. A silent path that quietly loads a huge model into the orchestrator is how you get an outage instead of an error.
+The [full worker](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/analysis-service/src/sow_analysis/workers/analyzer.py) calls a Modal deployment for allin1 analysis and its internal Demucs separation. It receives tempo, beats, downbeats, sections, and embedding information. A local librosa pass adds duration, key, and an RMS-based loudness estimate. That last value isn't a calibrated integrated-LUFS measurement.
 
-The second constraint is heterogeneity. Different outputs need different models with wildly different resource profiles. Treat them as one monolithic step and you pay the most expensive model's cold start for every output.
+Fast analysis stays local and produces duration, tempo, key, and loudness. The queue marks it `partial`; it doesn't upload a full analysis manifest. Its cache filename is separate from the full result, so a quick pass doesn't overwrite a more complete one.
 
-## What I built
+This split also keeps the heavy model dependencies out of the orchestration container. There is no local full-analysis fallback in the reviewed worker. Remote failure goes through the client retry policy and can still fail the job.
 
-### Two tiers
+## Key detection by voting
 
-The full tier is one remote call. A single ensemble model returns tempo, beats, downbeats, functional sections, and embeddings, and internally runs stem separation. The service then runs a few cheap local passes on the decoded file, merges everything into one manifest, and uploads it.
+The key detector compares chroma features against major and minor profiles. Whole-track averaging is available, but the voting paths use sections or overlapping windows after harmonic/percussive separation.
 
-The fast tier is local-only: duration, tempo, a fixed-window key vote, and loudness. It marks the job partial, uploads nothing, and never writes into the full tier's cache namespace. Its whole job is making the catalog browseable without burning GPU minutes on songs nobody has picked yet. Upgrading to full analysis is an explicit operator decision, and the two caches stay disjoint so a fast result can never masquerade as a full one.
+Quiet windows and ambiguous estimates are discarded. Accepted votes are weighted by duration and capped RMS; short first and last windows receive half weight. If none survive, the detector falls back to a whole-track estimate. That's more specific than assuming every intro and outro is downweighted.
 
-### Key detection, and why it votes
+The result carries confidence, a score margin, window agreement, candidates, and an algorithm version. These are diagnostics for an estimate. A high correlation isn't proof that the tonic is right, especially for a recording that modulates.
 
-Key detection gets its own section because the transition engine leans on it hardest, and a naive implementation gets it wrong in a specific, predictable way.
+The [analysis tests](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/analysis-service/tests/test_analyzer.py) exercise the helpers, while the [cache tests](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/analysis-service/tests/test_cache.py) check that fast and full results remain distinct.
 
-The detector compares the audio's harmonic content against a set of key profiles. It first separates harmonic from percussive so drum transients don't smear the result.
+## Models with different jobs
 
-Then it votes. The track is cut into overlapping windows. Each window produces a key estimate. Windows that are too quiet get dropped. Windows that are too close to call get rejected. Intros and outros get half weight because they're unrepresentative. If no window survives, the detector falls back to a whole-track estimate.
+The October 29 change moved standalone beat-grid detection into [sow-downbeats](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/analysis-service/modal_apps/downbeats_app.py). Component analysis can ask for bar boundaries without starting the full analyzer. The full analyzer still returns its own downbeats.
 
-Confidence, margin, and agreement get stored next to the key, because the set constructor refuses to transpose on a weak estimate.
+The lyrics pipeline also has a separate [stem-separation service](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/analysis-service/modal_apps/stem_separator_app.py) for deliverable vocal and accompaniment stems. Those shouldn't be confused with the four stems used internally during full analysis. Their consumers and recovery paths differ.
 
-The algorithm is versioned, and the version string appears in the cache filename and the database row. Change the voting logic and every cached analysis invalidates automatically.
+There were concrete dependency problems during the Modal move. The [October 29 fix](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/analysis-service/modal_apps/analyzer_app.py) captures model-library pins, a patch step, and a non-silent warm-up input. Keeping the working combination in the image definition makes it inspectable. It doesn't mean later model upgrades will be painless.
 
-### Isolating downbeats
+## Recovery has limits
 
-Downbeats are the smallest possible model deployment in the pipeline. The detector is accurate but needs several gigabytes of weights. Bundling it into the analyzer made every component analysis pay a multi-gigabyte cold start just to answer where the bar starts. Now it's its own deployment with its own container, its own GPU quota, and its own timeout, called only when a component actually needs bar boundaries.
+The [queue](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/analysis-service/src/sow_analysis/workers/queue.py) keeps in-memory state backed by a SQLite job store. At startup it purges old records and requeues interrupted processing and waiting jobs. The [persistence tests](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/analysis-service/tests/test_queue_persistence.py) cover restart behavior. This is useful recovery, though a seven-day job store isn't a permanent processing history.
 
-The analyzer's remote contract is deliberately narrow. Inputs are capped before they leave the orchestrator, so a malformed file fails fast instead of wasting minutes on a remote worker.
+The cache is less uniform than I would like. Fast results and beat grids use a temporary file followed by replacement. Full analysis, LRC, and component results use direct JSON writes. Clearing the cache removes all its contents, including both analysis tiers.
 
-The most important comment in that config is the one about retries. Retries belong to exactly one layer. If the remote side retried too, a client retry would multiply into more GPU runs, and that's how a slow job turns into a bill.
-
-### Stems are a different pipeline
-
-The stems produced internally by the analyzer are for its own use. The deliverable stems, clean vocals and instrumental for lyric videos and transitions, come from a separate two-stage separation service with its own failover paths.
-
-The interaction with the queue is the subtle part. Stem separation is triggered by lyrics jobs, and those jobs would otherwise hold a concurrency slot while waiting minutes for a third-party render. So the lyrics job releases its slot while the child runs and re-acquires it when the child completes. The queue records that as two explicit steps instead of one implicit wait.
-
-### The queue, and what happens when it dies
-
-The queue is in-memory and backed by a SQLite store with a startup purge. Concurrency is capped, and the fast tier sizes itself to the available CPU cores.
-
-The recovery rule is one line of intent. Any job found processing at boot gets reset to queued, because a job that was processing when the process exited is by definition not processing now. Combined with client-side idempotency, that makes a hard kill survivable.
-
-Cache writes are atomic: a temporary file plus a replacement, so a kill mid-write leaves the previous entry intact instead of a truncated JSON.
-
-## What broke
-
-The model stack is fragile. A library upgrade produced an import-time failure that looked like a missing symbol in an unrelated package. The fix was pinning both libraries and patching the model code to the combination that works. Model stacks don't have a stable dependency graph. They have one combination that works, and you have to capture it.
-
-A torch upgrade changed the default loading behaviour, and checkpoints started failing on the unpickling guard. The interim fix is an environment flag. A model checkpoint is executable content, and I treat it that way now.
-
-Silence was worse than noise. A warm-up pass on digital silence produced NaN stems that looked plausible in file listings. A two-line change fixed it.
-
-The container couldn't reach the remote inference layer at all. The symptom was timeout, not connection refusal. The host firewall was dropping traffic on the bridge interface. "The models are down" and "the firewall is eating packets" look identical from inside the app.
-
-Clearing a cache wiped fast results too. The clear operation was namespace-wide, so flushing full-tier entries also deleted fast-tier entries for the same recording. Recoverable, expensive in wall time, and it made the two tiers less independent than the design claimed.
-
-## What I would do differently
-
-Lock the model stack before the first deploy. The pins and the patch were discovered by breaking them, in an environment where a broken import costs a full image rebuild and a cold start. A lockfile that captures the working combination, not just the top-level versions, makes it reproducible instead of archaeologically recoverable.
-
-Split downbeats out from day one. The cost of bundling was invisible until I measured cold starts, and the split itself was an hour of work. Any model with a different resource profile belongs in its own deployment.
-
-Store the model version next to every derived output. The key algorithm is versioned. Tempo, sections, and embeddings are not. When a value looks wrong six months later, the first question is which model produced it, and for most of these features the answer is "whatever was in the image at the time".
-
-Make the cache namespace first-class. Clearing a cache wiped a tier it wasn't supposed to touch. Namespaces that exist only as filename prefixes get cleared by accident.
+So versioned filenames solve one problem: deciding whether a saved result belongs to the current algorithm. They don't by themselves solve interrupted writes, retention, or selective invalidation. I'd make those policies consistent before adding more cached outputs.

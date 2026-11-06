@@ -1,7 +1,8 @@
 ---
-title: "Building the catalog: 685 rows, 104 duplicates, and IDs that survive it"
+title: "Building the catalog: song IDs that survive another scrape"
 author: Michael Huang
 pubDatetime: 2026-06-02T00:00:00Z
+modDatetime: 2026-11-06T00:00:00Z
 slug: sow-catalog
 featured: false
 draft: false
@@ -9,89 +10,49 @@ tags:
   - stream-of-worship
   - python
   - data-engineering
-description: "Scraping one HTML table into a stable catalog, deduplicating audio by content hash, and migrating 685 rows without breaking anything."
+description: "Scraping the song table, separating songs from recordings, and fixing the first ID migration."
 ---
 
-Every downstream feature in Stream of Worship assumes a song is a stable, addressable thing. The transition engine keys its matrix on song IDs. The set constructor partitions the pool by themes attached to song IDs. The render worker embeds song IDs in chapter markers. Offline downloads cache by render job, and the render job points at songs.
+I needed a catalog before I could experiment with worship sets. [Stream of Praise’s songs page](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/services/scraper.py) had most of the text I needed in one table. The harder question was how to identify a song when the table changed.
 
-If a song's identity shifts, all of that degrades quietly. Cached analyses key off a hash that no longer matches a row. A set built last week references a song that "does not exist". So identity has to be stable above everything else, and I built it third, after the schema and the scraper. That ordering cost me a migration.
+The first IDs included row numbers. Inserting a row upstream could change IDs on the next scrape, so those numbers weren't suitable for references from recordings and songsets.
 
 This post is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Why seamless worship transitions are hard](/posts/sow-why-transitions-are-hard). Next: [The analysis pipeline](/posts/sow-analysis-pipeline).
 
 <!-- more -->
 
-## The problem
+_Updated November 6, 2026: implementation details below refer to the November 1 source snapshot. Later changes are dated where they matter._
 
-There's no Chinese worship music API. There's a website, Stream of Praise, with a single WordPress TablePress table of songs. Columns for title, composer, lyricist, album, musical key, and lyrics. That table is the entire upstream surface.
+## Scraping the table
 
-That gives me four problems, and they compound.
+The scraper looks for `tablepress-3`, then matches headers by Chinese or English keywords. That tolerates a column reorder. A missing table or lyrics column raises an error; other absent fields may be empty, and individual row failures are logged and skipped. It isn't a complete check that the upstream page still means what I think it means.
 
-First, it's HTML, not a contract. Column order and header text sit under someone else's control. A scraper written against it will eventually break.
+Lyrics needed some care. Both normal line-break tags and malformed tags with nested text appear in the parser's handling. Simply extracting cell text can join lines together. The scraper replaces or unwraps the tags first, then splits the text into lines. Its section output is still one `unknown` section; musical structure comes later from analysis.
 
-Second, no timings. The lyrics are plain text. Nothing upstream is synchronized to audio, which is why the lyrics pipeline exists at all.
+The [scraper tests](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/tests/admin/test_scraper.py) cover parsing, and [ID stability tests](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/tests/admin/services/test_scraper_id_stability.py) cover reorder and duplicate cases. They check saved HTML examples, so a live page change still needs investigation.
 
-Third, no theme tags. A worship set needs thematic structure, and the catalog says nothing about which song fits where.
+## Two kinds of identity
 
-Fourth, Traditional and Simplified Chinese both appear across sources, and the honorific gets mangled by naive conversion and romanization.
+A song's ID now comes from its title, composer, and lyricist. The [ID helper](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/services/catalog_edit.py) trims and NFKC-normalizes those fields, hashes the combined text, and appends eight hex characters to a pinyin slug. The whole ID is capped at 100 characters.
 
-## What I built
+This keeps IDs stable across row reordering. It doesn't make them independent of metadata corrections, or prove that two differently credited entries are different works. The digest is short, so I also shouldn't describe uniqueness as a mathematical guarantee.
 
-### Scraping a page, not an API
+For pinyin, 祢 and 禰 are replaced with 你 before romanization so the title uses `ni` rather than the library's `mi`. The original title stays intact.
 
-The scraper fetches the songs page, finds the table by DOM id, and raises if it's absent. Header cells get matched by Chinese keyword lists rather than by column position, so a column reorder is survivable and a column rename is not. I'd rather the scraper stop than guess which column is the key signature.
+A recording has a separate identity: SHA-256 of the downloaded audio bytes. The [downloader](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/services/youtube.py) searches YouTube, normalizes candidate titles, and checks duration to avoid some medleys and unusually long results. A matching hash can catch a duplicate before upload. It can't prove the search found the right performance.
 
-Cell text needs one specific fix. Lyrics arrive with line breaks in markup that isn't always well-formed. Some forms simply vanish under naive extraction and silently glue two lyric lines together. The parser normalizes every line-break variant before extracting text.
+## The first migration
 
-### Identity that survives a re-scrape
+The [April 28 migration handover](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/reports/handover_db_migration_song_ids.md) records 685 songs, of which 104 mapped to duplicate IDs. The repair kept the earliest old entry as canonical and soft-deleted the duplicates, leaving 581 active songs. All 21 recordings had valid song references afterward. These are counts from that migration, not today's catalog size.
 
-My first ID scheme was pinyin plus table row number. Cheap, and wrong. Row numbers shift when songs are inserted, so a re-scrape after any upstream addition reassigned IDs for a large fraction of the catalog and broke every foreign key along the way.
+The failed command had updated `recordings.song_id` before updating the parent `songs.id`. With foreign keys enabled, the new parent didn't exist yet. Duplicate target IDs were an additional problem.
 
-The replacement derives the ID from the song's own bibliographic data. Take the title, composer, and lyricist, normalize the text, hash it, and put a short digest after a readable pinyin slug. Same song, same ID. Different song, different ID. Two songs with the same title and different composers still separate cleanly.
+The repair used a one-off script with foreign-key enforcement disabled for the operation and two rename passes through temporary IDs. The handover records the result; the repair script itself wasn't committed. That limits how much of the operation can be reproduced from source.
 
-The slug is for humans. The digest is for uniqueness. There's also a hard length cap so long Chinese titles don't turn into unwieldy pinyin slugs. The honorific gets rewritten to its common form before romanization, because the library's default reading for that character would make the title unsearchable for the people who actually type it.
+## Catalog keys are reference data
 
-### Audio: content hash as the primary key
+A [July 3 audit](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/reports/key_detection_algorithm_review.md) compared detected roots with catalog roots: 75 matches out of 98 comparable recordings, or 76.5%. It ignored major/minor mode, excluded two rows with missing data, and treated enharmonic spellings as equal. The catalog key wasn't guaranteed ground truth either.
 
-A song is a work. A recording is a set of bytes. The schema separates them, and the recording table's primary key is the hash of the audio file itself.
+That was useful evidence for improving the detector, but it wasn't a general key-detection accuracy score. Keeping catalog metadata and recording analysis separate lets me revisit disagreements without losing either source.
 
-Finding the audio is the fuzzy part. The downloader searches YouTube against the publisher's own naming convention, scans the top results, and picks the one whose title matches the song after bracket-aware normalization. Brackets matter, because official titles carry annotations that break naive matching.
-
-Two guards prevent the obvious mis-downloads. Anything far longer than a comparable track is probably a medley, and a medley is worse than no audio at all. Anything unusually long gets flagged for the operator. Hashing before upload means a duplicate never costs a PUT. A duplicate stops the job and names the song that already owns those bytes, because content-hash duplication usually means you downloaded the wrong video.
-
-Storage layout follows the same hash. Audio, lyrics, stems, and the analysis manifest all live under one content hash.
-
-### The migration that failed on a foreign key
-
-The stable-ID cutover ran against 685 scraped songs. 581 were active. 104 were duplicate rows, a symptom of the same song showing up under multiple albums or with slightly different composer spellings. I soft-deleted the 104 and kept the earliest-scraped instance as canonical.
-
-The first attempt died on a foreign-key constraint. The cause was structural, not data: the rename ran as one update, and two old IDs could legitimately map to the same new ID, so the update transiently created a collision that the constraint blew up on.
-
-The fix was two mechanisms at once. Foreign-key enforcement came off inside the migration transaction so the intermediate state was legal. And the rename ran in two passes through a temporary namespace, routing every old ID to a disjoint scratch value before landing on the final one. No intermediate state ever collided with an existing row.
-
-Twenty-one recordings had valid song references after the migration. The small number is itself informative: audio ingestion had barely started when the ID scheme changed. Had it been hundreds, the same migration would have needed an actual verification pass.
-
-### Two more normalizations
-
-Script conversion. One audio source publishes lyrics in Simplified Chinese and the catalog is Traditional. The conversion protects the honorific with a placeholder so it survives the round trip unchanged, and it's idempotent on a second pass.
-
-Key disagreement. The catalog gives a key per song. The analysis pipeline detects one from audio. They agreed on roughly three out of four songs, and the disagreements clustered around dominant and subdominant relations, which is a classic failure mode for profile-based key detection. The catalog key wins for display. The detector output stays as diagnostics.
-
-## What broke
-
-The site structure changed once and the scraper threw. That's what I asked for, and it still cost me an afternoon, because "table not found" looks identical to "page did not load" until you read the HTML.
-
-For a handful of songs the official video simply isn't in the first few search results. The error path wants the operator to supply a URL explicitly, which is the right escape hatch but still a manual step.
-
-The wrong video got caught as a duplicate hash. A search returned a different song's video for two catalog entries, and the second download failed on the same bytes. Correct failure, and the message naming the owning song is what made the diagnosis quick.
-
-Simplified and Traditional drift silently produced lyric text that didn't match the audio. It only surfaced when alignment scored poorly. The placeholder fix came after.
-
-## What I would do differently
-
-Define ID stability before the first scrape. My row-number scheme was one afternoon's work and cost a full migration. Identity should be the first table design decision, not the third.
-
-Add a scrape-contract test. A test that asserts the header keywords, the table id, and the shape of one parsed row would fail in CI when the page changes, instead of at the start of a batch run.
-
-Make duplicate audio a review queue, not a command failure. A duplicate hash means either "you already have this" or "you downloaded the wrong video", and the system can't tell which. Right now it guesses by refusing. A queue with both candidates side by side is the honest interface.
-
-Reconcile the two key sources instead of picking one. A disagreement that's mostly dominant or subdominant is signal, not noise. It should surface as a per-song flag instead of vanishing into diagnostics.
+For this project, row order was easy to use and expensive to depend on. I'd choose the identity fields before the first import next time.

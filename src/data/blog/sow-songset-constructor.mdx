@@ -1,0 +1,75 @@
+---
+title: "The songset constructor: searching within a worship arc"
+author: Michael Huang
+pubDatetime: 2026-07-28T00:00:00Z
+modDatetime: 2026-11-06T00:00:00Z
+slug: sow-songset-constructor
+featured: false
+draft: false
+tags:
+  - stream-of-worship
+  - machine-learning
+  - design
+description: "A fixed phase template, deterministic checks, and a historical example of ranked songsets."
+---
+
+import ShowcaseSetExplorer from "@/components/ShowcaseSetExplorer.astro";
+
+I wanted to build a tool to help put together worship sets. Picking good songs is only part of it. I also want a useful order, manageable transitions, and a set that fits the available time.
+
+A language model can explain a proposed set convincingly without checking any of those details. So the constructor uses code to search, validate, and score. A model can help plan and annotate, but its explanation doesn't make a proposal valid.
+
+This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [The transition engine](/posts/sow-transition-engine). Next: [The web app](/posts/sow-webapp-architecture).
+
+{/* more */}
+
+## Choose the shape first
+
+I use five phases: call, thanksgiving, worship, response, commission. The [fitness templates](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/songset_constructor/rules/fitness.py) are `(1, 4)` for two songs, `(1, 3, 5)` for three, `(1, 3, 4, 5)` for four, and all five phases for five songs.
+
+Those are target shapes, not an exact phase requirement for every accepted proposal. The validators and relaxation settings permit variation. Counts outside two through five are rejected rather than silently shortened.
+
+The theme fallback combines title matches, lyric matches, song embeddings, and line embeddings. With component metadata, chorus classifications carry more weight than other sections, adjusted by confidence. It aggregates the votes; it doesn't simply assign the final chorus's theme to the whole recording. Tempo bands are a last fallback when theme evidence is absent.
+
+## What the current checks enforce
+
+_November 6 update: this section describes the November 1 implementation, including August constraint changes and September component support. The embedded July example below used an earlier version._
+
+The [validator](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/songset_constructor/rules/hard_constraints.py) has ten checks: cardinality H0, then H1–H9 for phase coverage, opening tempo, closing tempo, adjacent tempo delta, harmonic distance, duplicate songs, phase progression, key confidence, and total duration.
+
+Some details are easy to miss:
+
+- The default opener floor is 90 BPM; the closer ceiling is 90, or 80 in intimate mode. Boundary BPM is preferred for these endpoints.
+- Adjacent tempo delta is capped at 45 BPM when the incoming song has a positive gap or crossfade duration, and 40 otherwise. A gap alone qualifies for the wider allowance.
+- Harmonic distance defaults to three fifths steps. A positive crossfade duration or matching nonzero suggested shift can bypass the distance rejection.
+- Phase progression permits a one-phase backward step, considering primary and secondary phases. It isn't strictly monotone.
+- The 25-minute duration check sums whole-song durations. Unknown durations contribute zero, and gap/overlap time isn't part of that sum.
+
+Relaxation can widen tempo and harmonic limits and loosen phase coverage. The resulting settings belong with the output. In particular, a run configured with relaxed phase coverage shouldn't be described as having passed the strict template just because its warning list is empty.
+
+## Ranking the valid proposals
+
+The base weights are theme 0.40, tempo 0.30, harmony 0.20, and diversity 0.10. Energy and posture can each take 0.05, scaling down the base terms when present. Missing those signals doesn't mean the proposal is poor; it means the score has less information.
+
+Scores depend on those choices. They aren't calibrated across different pools, feature coverage, and code versions. Even the energy function needs caution: its comment describes a softer landing, but its current arc expression penalizes an opener rank above the closer rank. I can't claim that it consistently rewards the intended decline.
+
+The constructor has a deterministic path without an LLM. That makes it possible to inspect the search independently of the prose a model writes about the results.
+
+## Example output from July 26
+
+This is the saved `eval/run1_standard` run: five ranked three-song proposals from a pool of 438. The [run review](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/eval/run1_standard/songset_review.md) records `no_llm=True`, `auto_relax=True`, and `relax_h1=True`. It came from deterministic beam ranking, with phase coverage already relaxed.
+
+<div class="not-prose rounded bg-muted/40 px-3 py-1 font-mono text-[11px] text-foreground/60">
+  Audio files are not committed to the repo — waveforms are illustrative. Song,
+  key, BPM, crossfade, and score data are verbatim constructor output.
+</div>
+
+<ShowcaseSetExplorer />
+
+These are historical outputs. The values haven't been regenerated with November's rules, and the waveform illustrations aren't audio evidence. Key shifts are recommendations; the render worker doesn't apply them.
+
+## Better input helped more than another explanation
+
+The [Traditional Chinese comparison](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/reports/enrichment_eval_comparison.md) kept the same 438-song pool and increased title theme hits from 76 to 106 and lyric hits from 342 to 372 after vocabulary normalization. That is evidence of better matching coverage, not evidence of better worship sets.
+
+I would collect listening feedback before tuning the weights much further. Giving leaders a few proposed sets to try would tell me more than another round of scoring the same proposals by my own rules.

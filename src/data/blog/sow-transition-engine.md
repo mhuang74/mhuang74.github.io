@@ -1,7 +1,8 @@
 ---
-title: "The transition engine: judge the seam, not the song"
+title: "The transition engine: comparing the exit and entry"
 author: Michael Huang
 pubDatetime: 2026-07-14T00:00:00Z
+modDatetime: 2026-11-06T00:00:00Z
 slug: sow-transition-engine
 featured: false
 draft: false
@@ -9,97 +10,49 @@ tags:
   - stream-of-worship
   - audio
   - design
-description: "Crossfades, beat-aligned gaps, and boundary keys: why transition quality gets judged at the seam instead of on whole-song averages."
+description: "Boundary features, harmonic recommendations, and what the renderer actually applies."
 ---
 
-Two songs can both be excellent and still refuse to sit next to each other. A transition isn't a property of either song. It's a property of a pair of songs at a specific point in time.
+I need to compare the end of one recording with the start of the next. A song's catalog key and average tempo are useful shortcuts, but they can describe the wrong part of a transition.
 
-Most music tools describe a song with one number per attribute. One tempo, one key, one loudness. That's fine for browsing a library and useless for joining two tracks. The two ends of a song are usually not its average.
-
-This engine follows one rule. Score the exit of the first song against the entry of the second. Pick a technique that fits what you find there.
+The transition code recommends a gap, crossfade, and possible key shift. Rendering is a separate step, and some saved settings still don't affect the audio. That distinction matters when auditioning a proposed set.
 
 This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [Synced lyrics from messy sources](/posts/sow-lyrics-pipeline). Next: [The songset constructor](/posts/sow-songset-constructor).
 
 <!-- more -->
 
-## The problem
+_November 6 update: boundary-aware constructor scoring was added September 12. The details below are checked against the November 1 revision._
 
-Three questions sit between "the songs are analyzed" and "the songs can be joined".
+## Which measurements to compare
 
-Which key. A song can have one key in the catalog and different keys from analysis at the component level. Comparing a component-level exit key to a song-level entry key compares two different kinds of estimate. That's not a small error. It's a category error.
+[Component aggregation](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/songset_constructor/components.py) reads rows marked `entry`, `exit`, or `entry_exit`. If more than one row qualifies, occurrence index and row ID provide a deterministic choice. It doesn't search every possible join point.
 
-Which tempo. Tempo drives gap length in beats. A wrong boundary tempo makes the gap musically wrong and audibly so.
+For keys, the [pair comparison](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/songset_constructor/rules/transitions.py) uses component estimates only when both sides have them. Otherwise it falls back to song-level estimates on both sides. This avoids mixing two kinds of key source in one comparison.
 
-Which technique. Harmonic distance alone doesn't decide the transition. Some pairs want a crossfade, some want a gap, and a constant method applied everywhere is a decision to stop deciding.
+Tempo fallback is more limited than that summary might suggest. For a component-key pair, one missing boundary BPM falls back to that song's BPM with a warning. If both boundary BPMs are missing, the current calculation produces a zero delta and a warning instead of recovering both song-level values. Song-level pairs use song-level tempos. Missing data can therefore make a pair look easier than it is; the warning is worth reading.
 
-## What I built
+## Harmony is a rough guide
 
-### The seam model
+The [harmony helper](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/songset_constructor/rules/harmony.py) maps minor keys to their relative majors and measures shortest distance around the circle of fifths. It searches shifts within two semitones and prefers a smaller shift when distances tie.
 
-Each item in a songset carries transition parameters: gap beats, crossfade enabled, crossfade duration in seconds, key shift, and tempo ratio. Defaults are a two beat gap, crossfade off, no key shift, and no tempo change.
+That is a convenient compatibility measure, with obvious limits. Relative major and minor aren't interchangeable musical experiences, and compatible keys don't guarantee compatible arrangements.
 
-That range asymmetry is intentional. The preview endpoint is for auditioning, and an audition that lets you go an octave out wastes your time. The full API accepts wider values because a saved plan can be edited and re-previewed.
+The recommendation code chooses among `pivot`, `relative`, `direct`, `transposition`, `vamp`, and `direct_modulation`. Close keys get a two-beat gap with no crossfade. More distant cases get four-, six-, or eight-second overlaps depending on the branch. The transposition branch is checked before the vamp branch.
 
-### Boundary features
+These names describe recommendations. The renderer doesn't synthesize a vamp or construct a pivot-chord passage. Low key confidence adds a warning here; the constructor's separate validator rejects a nonzero shift when the applicable incoming confidence is known and below 0.6. Missing confidence doesn't trigger that rejection.
 
-Component rows carry a role. Entry, exit, both, and none. Aggregation reads entry from rows marked entry and exit from rows marked exit.
+## From beats to milliseconds
 
-The rule is simple: keys never mix provenance within a pair. If both sides have component keys, the pair gets scored on component keys. Otherwise both sides fall back to song-level keys. One side component and one side song-level is never allowed.
+The [render worker’s audio engine](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/render-worker/src/sow_render_worker/audio_engine.py) uses the incoming item's recording tempo to convert its gap from beats to milliseconds. It doesn't consume the constructor's boundary BPM. If tempo is unavailable, it falls back to one second per requested beat.
 
-Tempo is per side. Each side falls back to its song-level tempo independently, with a warning that names the song. The asymmetry is intentional. Mix key provenance and the answer is meaningless; mix tempo provenance and it's only less precise. So one gets banned and the other gets a warning.
+With crossfade enabled and a duration set, the gap becomes zero. The incoming start is the previous end plus the gap minus the overlap, clamped at zero. Fade filters shape the overlap, delay filters place the tracks, and FFmpeg mixes them. Optional loudness normalization targets −14 LUFS for the resulting mix.
 
-### Harmonic compatibility
+That is enough to produce a continuous file. It doesn't check for overlapping vocal lines or choose a better place inside a chorus to make the edit.
 
-Both keys reduce to pitch classes, with minor keys mapped to their relative major. Distance is the shortest step count around the circle of fifths, and distance maps to a score.
+## Saved settings that don't change the mix
 
-The drop is steep around three steps. One or two steps is a normal musical move. Three steps is where you need a musical excuse.
+`key_shift_semitones` and `tempo_ratio` are loaded and stored, but the reviewed render worker applies neither. There is no pitch-shift or time-stretch filter in its audio path. The [audio engine tests](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/render-worker/tests/test_audio_engine.py) are useful for the implemented timing and filter behavior; they aren't listening evaluations.
 
-The engine suggests a transposition by searching the few nearest semitone shifts and choosing the smallest one that minimizes the distance. The suggestion never proposes a two semitone shift when one works. Key confidence gates it. Below 0.6, the engine refuses to transpose at all, because acting on a weak estimate is a way to be wrong more loudly.
+This leaves an awkward gap between scoring and delivery. A proposal can satisfy a harmonic rule through a suggested transposition that the rendered file never receives. I would fix that before presenting transposition as a working audio control.
 
-### Technique selection
-
-Distance and shift select a technique. Close relationships get a short gap and no crossfade, because the songs already agree and a crossfade smears two different grooves. Distant relationships get longer crossfades and longer gaps, because the listener needs time to be moved.
-
-The order matters. Transposition is checked before the vamp branch. A pair that a single semitone fixes gets scored as a transposition, not a vamp, because the cheaper remedy wins.
-
-### Render math
-
-The render worker converts beats into milliseconds at the boundary tempo. A two beat gap at 140 BPM is shorter than a two beat gap at 90 BPM. Same musical instruction, different clock time.
-
-A crossfade zeroes the gap, because silence and overlap don't coexist. Segment placement is previous end plus gap minus crossfade. Each segment gets a fade in and a fade out. The result is loudness normalized to a consistent target.
-
-## The part that is intent, not signal
-
-Key shift and tempo ratio are persisted, editable, and displayed in the UI. The render worker applies neither. There's no pitch-shift filter, no resampling filter, and no time-stretch filter anywhere in the render worker.
-
-That's the single most misleading thing in the product surface. A parameter that looks like a knob, persists like a knob, and does nothing.
-
-The reasons are simple. Pitch-shifting a vocal without formant correction sounds wrong. Time-stretching changes the groove in the recording. Both are things a musician hears immediately. There's no A/B harness to tell me whether a shift improves a transition or just changes it.
-
-So the engine recommends a transposition and records it. A human is expected to act on it. The shipped system doesn't do it automatically.
-
-## Design doc versus shipped path
-
-The original spec planned more machinery: a different beat detector, a stretch library, a task queue, low-latency rendering, and mostly automatic transitions. What shipped is smaller on every axis. Recommendations a human accepts or overrides.
-
-Each removed component would have added a failure mode to a path that already had enough.
-
-## What broke
-
-Mixed key provenance produced nonsense distances before the all-or-nothing rule. A pair got scored with one component key and one song-level key, and the result occasionally recommended a transposition for songs already in the same key.
-
-A missing boundary tempo silently produced a wrong gap. The render still succeeded. That failure only surfaces by listening to the output, not by reading logs.
-
-The preview endpoint and the editor disagreed about crossfade range. A value saved from a script rendered fine and was unrepresentable in the UI. Two surfaces validating the same field with different ranges is a bug waiting for the first power user.
-
-The unused parameter problem is still the one I'd undo first.
-
-## What I would do differently
-
-Never persist a parameter the renderer doesn't consume. Either wire it to a filter or keep it out of the UI.
-
-Build the seam A/B harness before adding any DSP. The reason transposition and tempo matching stalled is that there's no instrument to tell whether a shift improves a transition.
-
-Measure transition acceptance as a rate, not a score. Every number in the algorithm is a property of the algorithm, not the listening experience.
-
-Unify parameter ranges in one schema. The same field existing in three places with two ranges is a bug.
+For now, the practical check is to listen to the rendered transition. A favorable distance or technique label is a reason to try a pair, not a verdict on how it sounds.

@@ -1,7 +1,8 @@
 ---
-title: "The web app: phone-first worship on Vercel and Lambda"
+title: "The web app: preparing a set on a phone"
 author: Michael Huang
 pubDatetime: 2026-08-11T00:00:00Z
+modDatetime: 2026-11-06T00:00:00Z
 slug: sow-webapp-architecture
 featured: false
 draft: false
@@ -10,75 +11,47 @@ tags:
   - nextjs
   - aws
   - web
-description: "A phone-first web app on serverless components, with a render plane, presigned delivery, and polling progress."
+description: "Separating editing from rendering, polling for completion, and delivering video to a TV."
 ---
 
-The person using Stream of Worship is standing in a sanctuary on a Saturday night with a phone. They pick four songs, set a couple of transition parameters, hit render, and want an MP4 that plays on the projector TV in the morning. Nothing about that workflow involves a laptop.
+Preparing a set on a phone means picking songs, submitting a render, and getting a video ready for a larger screen. The editor needs to respond quickly. Encoding a whole service can take minutes.
 
-That one sentence of intent dictated the architecture. The app splits in two. A request plane that's small, fast, and authenticated. A render plane that's large, slow, and disposable. A queue connects them.
+That gave me a useful division: the web app accepts and tracks the work, while a separate worker produces the files. They share a database and object storage, with a queue between submission and rendering.
 
 This is part of [Stream of Worship, a series](/posts/sow-intro). Previous: [The songset constructor](/posts/sow-songset-constructor). Next: [Offline worship playback](/posts/sow-offline-playback).
 
 <!-- more -->
 
-## The problem
+_Updated November 6, 2026: the paths below are from the November 1 revision. They describe the implementation, not a measurement of the deployed service._
 
-Four very different clients talk to this system. A phone browser with a session cookie. A projector TV running a Chromecast receiver with no session. A native Android app that needs cookie-based auth. A Lambda worker that has to write results back to the database.
+## One backend, several clients
 
-Each one needs a different auth answer, and getting it wrong produces failures that look like product bugs. A receiver that gets an HTML login page shows a black screen. An Android client that gets a redirect tries to parse the HTML body and reports an impossible JSON error.
+The Next.js app serves browser sessions and JSON APIs. Android uses those APIs too. A Cast receiver is different: it needs a playable media URL without having to sign in to the app.
 
-Then there's the artifact problem. Rendered videos are hundreds of megabytes and need to reach devices that aren't always on the same network.
+The [auth proxy](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/webapp/src/proxy.ts) redirects unauthenticated page requests to login, but returns JSON with status 401 for protected API requests. API handlers still check authorization and ownership. Public share and projection routes have their own access paths.
 
-## What I built
+This distinction is small but necessary. A native client expecting JSON can't do anything useful with an HTML login page, and a successful redirect isn't a successful API response. The [proxy tests](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/webapp/src/test/proxy.test.ts) make that difference explicit.
 
-### The request plane
+Catalog metadata, recordings, songsets, and render jobs live in Postgres. Text search uses titles, pinyin, and credits. Similar-song discovery uses stored embeddings. I wouldn't describe those as one general hybrid search system: the retrieval routes serve different requests.
 
-The web app runs on serverless components with a session cookie that persists for days. Auth is enforced in one proxy layer instead of per route, because the same middleware serves browsers and machines and they need different refusal shapes. Browsers get redirected. API clients get a status code they can branch on.
+## Submit a job, then read it again
 
-### The data model
+The [render endpoint](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/webapp/src/app/api/render-jobs/route.ts) validates the request, checks access and limits, inserts a job, and dispatches it. If dispatch fails, it marks the job failed. An active-job guard prevents another render from stacking up for the same set, and stale jobs can be reconciled rather than blocking it indefinitely.
 
-The catalog, recordings, songsets, render jobs, embeddings, and share tables all live in one database. Search is a weighted text index for titles, pinyin, composer, lyricist, and album. Semantic search is a separate vector index. The two results get combined at the application layer so each retrieval path stays explainable.
+The [dispatcher](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/webapp/src/lib/render/dispatcher.ts) supports SQS and a REST mode. SQS is the default. It sends job, songset, and user identifiers rather than a serialized song list.
 
-### The render plane
+The [worker pipeline](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/render-worker/src/sow_render_worker/pipeline.py) reads the database, fetches source assets, mixes audio, renders video, uploads the artifacts, and updates the job. Reading the plan at execution time avoids a second serialized copy in the message, but it also means the message isn't an immutable snapshot of the set at submission.
 
-The render endpoint does five things: validate the session, parse the config, enforce limits, insert the job row, and enqueue. If the enqueue fails, the job gets marked failed immediately instead of stranded. An already-active job returns conflict rather than stacking.
+## Polling is enough for this screen
 
-The dispatch is boring on purpose. One function, one transport, no retry logic, because the worker owns its retries. The payload contains identifiers only, never a serialized songset. The worker re-reads the plan from the database, so a job message can never carry stale data.
+The [submitted screen](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/webapp/src/components/render/RenderSubmitted.tsx) polls every ten seconds. A transient fetch error leaves the job alone and allows another tick. A 401 or 403 stops polling and asks the user to sign in; it doesn't mean the render failed. A 404 or 410 ends the screen's attempt to track that job.
 
-The worker is a container that pulls the job, renders audio and video, writes to storage, and updates the row. One job saturates the container, so it's not batchable.
+The README still lists an SSE events endpoint, but that route isn't present in this revision. The client implementation and its [tests](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/delivery/webapp/src/test/components/render/RenderSubmitted.test.tsx) are the useful references here. I would remove the stale documentation rather than make readers work out which transport exists.
 
-### Progress without a socket
+## Give the TV a file it can fetch
 
-The client polls the render status every ten seconds. That's the shipped mechanism, and the error handling is the interesting part. A failed request changes nothing about the job, so transient errors resume on the next tick. Unauthorized and forbidden stop polling and surface session expired. Not found and gone stop polling and mark the render failed.
+The logged-in controller mints a presigned storage URL and passes it to the Cast receiver. Lyrics are baked into the MP4, so that receiver doesn't need the catalog or the user's cookie. The controller requests a four-hour URL for Cast playback to allow setup and a service.
 
-I mention this because the README advertises a streaming endpoint that doesn't exist. Polling is what ships.
+Chapters arrive as a JSON sidecar through an app proxy. That keeps the browser from depending on a cross-origin storage fetch for chapter data. Codec support and network access still matter; the code can't establish that every TV or venue network will work.
 
-### Delivery to a device that can't log in
-
-Artifacts live in object storage. Access is through presigned URLs minted server-side and scoped to the session that owns the render job. Time limits are sized to a service plus margin.
-
-The projector path uses Chromecast with the lyrics baked into the MP4. The receiver gets a URL to storage and never contacts the web app or needs a catalog. Chapters are a sidecar JSON that the app fetches server-side, because the storage bucket isn't configured to let a browser fetch it directly.
-
-## What broke
-
-The black screen on the TV had two causes, and neither was in the code I was looking at. One venue had client isolation on the guest network. The other was a codec mismatch where the file's index was at the end instead of the beginning, so the receiver had nothing to start on.
-
-Share-page chapters failed in the browser because cross-origin access to storage wasn't configured. Moving the fetch server-side removed the need for it.
-
-A Cast receiver can report a stale position. Now anything over a minute prompts the operator to resume instead of auto-resuming from a wedged position.
-
-Cold starts on the worker are accepted rather than engineered away. The operator is already waiting minutes for the encode, so a couple of extra seconds don't change the experience.
-
-Orphaned jobs stuck in running get reconciled after a timeout. Without that sweep, an active-job guard would permanently block a songset.
-
-The web app and the worker run in different regions. The enqueue cost is invisible, but every synchronous database round trip pays for the distance.
-
-## What I would do differently
-
-Ship the mechanism the docs promise, or delete the promise in the same commit. Two artifacts disagreeing about the transport costs a reader an hour.
-
-Make region co-location and queue depth observable instead of remembered. Nothing in the repo would catch a worker in the wrong region.
-
-Make the network preflight part of the cast flow. The README troubleshooting is useless at 7 a.m. on a Sunday. It belongs in the cast button's failure path.
-
-Treat the four-client auth matrix as a test surface. The redirect-to-login bug is only discoverable from a non-browser client.
+For a prepared service, the next step is [offline playback](/posts/sow-offline-playback). A URL that lasts four hours is helpful while online. A downloaded copy needs a different boot and delivery path.

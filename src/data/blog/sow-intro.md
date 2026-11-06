@@ -11,42 +11,42 @@ tags:
 description: Introducing a series on building Stream of Worship, a system for seamless Chinese worship music transitions
 ---
 
-Small group leaders have a dilemma. We want worship to be as powerful as Sunday service, but all we have are Youtube videos with lyrics. What happens _between_ the songs? There's a prolonged and awkward silence. An ad may interrupt. The next song starts from a cold stop in a different key. For English-language worship there are plenty of tools. For Chinese worship music there's basically nothing. How do I find compatible songs and create a smooth lyrics video for all the songs?
+I want to make worship in small groups flow more like Sunday service. But when all we have are YouTube videos with lyrics, there's often an awkward silence between songs. An ad may interrupt. The next song starts in a different key. There are plenty of tools for English-language worship, but I've found very little for Chinese worship music. How do I find compatible songs and create one lyrics video for the whole songset?
 
-[Stream of Worship](https://streamofworship.com) is my attempt to fix that. It analyzes songs, strings them into smooth transitions, and renders ready-to-play audio and lyric videos. A worship leader goes from "here is my song list" to a seamless, offline-capable set.
+[Stream of Worship](https://streamofworship.com) is my attempt at this. It analyzes songs, creates transitions between them, and renders audio and lyrics videos. The idea is to give it a song list and get a continuous worship set that can also play offline.
 
-This post kicks off a series on how it's built.
+This is the first in a series of posts on how it's built.
 
 <!-- more -->
 
 ## What it does
 
-At its core, it answers one question: given a set of Chinese worship songs, produce a single continuous playback where each song flows into the next without a hard stop.
+Given a set of Chinese worship songs, I want to play them continuously, with each song flowing into the next without a hard stop.
 
-Four things get it there:
+There are four main parts:
 
-1. Builds the catalog. A scraper pulls the song catalog, audio gets deduplicated by content hash, and everything lands in a shared database with object storage holding audio and rendered files.
-2. Analyzes every recording. A GPU-heavy service produces tempo, key, sections, and stems. Lyrics get generated through a fallback pipeline into LRC files.
-3. Plans the set. Transitions get judged on musical boundaries, not averages. Sets follow a fixed five-phase worship arc, and an agentic constructor proposes orderings that fit.
-4. Renders and delivers. A serverless worker mixes crossfaded audio and encodes a synchronized lyrics video. The web app has the editor, playback, projection, search, and offline support. There's a native Android client too.
+1. Build the catalog. A scraper collects the song catalog, and content hashes identify duplicate audio. A shared database holds the records, while object storage holds audio and rendered files.
+2. Analyze the recordings. A service makes heavy use of GPUs to find tempo, key, song sections, and stems. The lyrics pipeline tries several sources to produce LRC files.
+3. Plan the songset. The transition engine checks the musical boundaries where songs join, rather than relying on song-wide averages. An AI agent proposes song orders that follow a fixed five-phase worship progression.
+4. Render the songset. A serverless worker crossfades the audio and renders a video with synchronized lyrics. The web app provides editing, playback, projection, search, and offline support. There's a native Android client too.
 
-The goal is to empower the small group worship leaders:
+I want small group worship leaders to be able to:
 
-- interactively browse, discover, preview songs with lyrics
-- introduce unfamiliar songs with audio version of worship songset
-- generate worship-ready lyrics videos with accurate lyric transitions
-- playback pre-downloaded lyrics video without network
-- cast lyrics to large screen TV via Chromecast
+- browse, discover, and preview songs with lyrics
+- introduce unfamiliar songs using an audio version of the songset
+- generate lyrics videos with lyrics that change at the right time
+- play downloaded lyrics videos without a network connection
+- cast lyrics to a large-screen TV via Chromecast
 - share lyrics videos on social media
 
 ## Where it stands
 
-The project has been through roughly ten build phases and is past the "does it work" stage.
+I've worked through roughly ten phases of building this so far.
 
-- Catalog, audio, and analysis pipelines are operational.
+- The catalog, audio, and analysis pipelines are working.
 - The web app is the primary interface.
 
-Coming later in this series: offline worship playback on downloaded sets, and a native Android client over the same APIs. Still to come after that: better transition quality, hybrid semantic search, a video template marketplace, and languages beyond Chinese.
+Later posts cover offline playback of downloaded songsets and a native Android client using the same APIs. There's still more I want to work on: better transitions, hybrid semantic search, a video template marketplace, and support for languages beyond Chinese.
 
 ## The series
 
@@ -63,8 +63,8 @@ Here's the plan for the posts, roughly in pipeline order:
 9. [Going native: the Android client](/posts/sow-android-client).
 10. [Ten build phases: what Stream of Worship taught me](/posts/sow-retrospective).
 
-One more post follows the retrospective: [Detector 2.0.0: catching bad Chinese worship lyrics](/posts/lrc-detector-2-0-0). It covers the quality gate that runs over the lyrics these pipelines produce.
+One more post follows the retrospective: [Detector 2.0.0: catching bad Chinese worship lyrics](/posts/lrc-detector-2-0-0). It covers how I check the lyrics these pipelines produce for errors.
 
-Most posts stick to what's actually in the repo: the pipelines, the things that broke, and the numbers I can defend. If this sounds like your problem too, the code is open source and the [user guide](https://streamofworship.com) covers the worship-leader workflow.
+Most posts cover what I've built so far, what broke, and what I learned. The code is open source. If you'd like to try it for your small group, the [user guide](https://streamofworship.com) explains how to put a songset together.
 
 Next up: [why seamless worship transitions are hard](/posts/sow-why-transitions-are-hard).

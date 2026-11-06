@@ -1,7 +1,8 @@
 ---
-title: "Detector 2.0.0: catching bad Chinese worship lyrics"
+title: "Detector 2.0.0: finding lyrics files to review first"
 author: Michael Huang
 pubDatetime: 2026-10-06T00:00:00Z
+modDatetime: 2026-11-06T00:00:00Z
 slug: lrc-detector-2-0-0
 featured: false
 draft: false
@@ -10,57 +11,86 @@ tags:
   - machine-learning
   - stream-of-worship
   - python
-description: "A lyrics detector that finds broken timed files, and the three errors it caught."
+description: "Ranking suspect timed lyrics, with three recorded examples and limits on what they establish."
 ---
 
-The Stream of Worship catalog currently has hundreds of recordings whose lyrics files are marked for review. Every one needs a human to decide whether the timed lyrics are good enough to put on screen. The hard part was never rendering the lyrics video. It's finding the broken files first.
+Finding the broken lyrics files first would make the review queue easier to work through. An LRC file can look reasonable in a text editor while showing the wrong chorus or leaving the final minute uncovered.
 
-An LRC is a plain text file where each lyric line starts with a timestamp. The detector's job is narrow: given one recording's LRC, its transcript, and optionally a beat grid, return a score. At or above 0.65, the recording is called poor. That's a triage tool, not a general lyrics checker, because the thresholds and features assume this repertoire.
+The detector's job is to rank files for a human to check. It compares timed lyrics with a transcript and, when available, beat and audio-model evidence. It doesn't publish a file or replace listening to the recording.
 
-This post is part of [Stream of Worship, a series](/posts/sow-intro), but it stands alone. It covers how the detector works and three errors it caught.
+This post is part of [Stream of Worship, a series](/posts/sow-intro), following the [retrospective](/posts/sow-retrospective).
 
 <!-- more -->
 
 ## How it works
 
-Verdict, confidence, subtype, evidence. That's the output. Confidence is the ranking score, verdict is the score pushed through the cut, and subtype is `text`, `timing`, or `both`.
+There are three sides to the detector: a trained model that starts with the LRC text, a hand-built model of common defects, and lyrics quizzing against the recording. The earlier revisions describe the following scoring process.
 
-1. **Parse the LRC.** Sort the timestamped lines and count them. A row whose entire text is a free-worship marker (`自由宣告` / `自由敬拜`) gets blanked, because it marks an unscripted section, not a lyric.
+**The LRC text and alignment model**
 
-2. **Text-only features.** 23 numbers from the LRC alone: duplicate and repeated lines, gaps, implied line durations, timestamp inversions and overlaps, encoding damage, coverage of the audio duration. They produce `a_score`.
+An LRC line has a timestamp and text. First, the detector sorts the timestamped lines. A line containing only `自由宣告` or `自由敬拜` gets its text blanked, because it marks an unscripted section rather than a lyric. It then extracts 23 features from the LRC alone: duplicate and repeated lines, gaps, implied line durations, timestamp inversions and overlaps, encoding damage, and coverage of the audio duration. These also produce a summary score, `a_score`.
 
-3. **Clean the transcript.** Drop segments that look machine-invented: watermark text, probable silence flagged at low confidence, or one short phrase repeated to fill a segment.
+The text alone can't tell me whether the right words appear at the right time. So the detector also compares the LRC with an automatic speech recognition (ASR) transcript. Before alignment, it drops suspected transcription artifacts such as watermarks, low-confidence silence, and short phrases repeated to fill a segment.
 
-4. **Align lyrics to sung text.** An ordered span dynamic program matches blocks of 1–2 lyric lines to blocks of 1–5 consecutive transcript segments, scoring with fuzzy string similarity. Matches are monotone: order preserved, no reuse.
+The aligner matches blocks of 1–2 lyric lines with blocks of 1–5 consecutive transcript segments using fuzzy text similarity. It preserves order and doesn't reuse a segment. Repeated choruses make that tricky: the same words can match well in several places. If a match starts more than 8 seconds from the lyric's timestamp while the same words are also sung within 8 seconds of it, a pairing penalty favors the nearby occurrence.
 
-5. **Apply the pairing prior.** If a matched block starts more than 8 s from its lyric stamp while the same words are also sung near the stamp, penalize the far match so the near one wins. Without it, the aligner happily matches a line to a much later repetition of the same chorus.
+That comparison supplies another 18 features: the share of lines matched, typical timing offset and its spread, the share off by more than 1 or 2 seconds, drift per minute, uncovered vocal time, repeated-line count differences, and distance to the nearest beat when a beat grid is available. These produce `b_score_fb`.
 
-6. **Audio-grounded features.** 18 numbers from the alignment: fraction of lines matched, median and spread of offsets, drift per minute, sung time with no lyric scheduled, and distance from stamps to the nearest beat. They produce `b_score_fb`.
+The trained model uses all 43 inputs: the 23 LRC features, 18 alignment features, and the two summary scores. Missing values are filled with training medians, the inputs are standardized, and a fitted logistic regression returns `model_risk` between 0 and 1. The fitted constants are embedded, so scoring only needs a numpy dot product and a sigmoid.
 
-7. **Score twice.** A logistic regression over all 43 features gives `model_risk`; the fitted constants are embedded, so inference is a numpy dot product and a sigmoid. Separately, five hand-built evidence components — content mismatch, drift, absolute offset, scattered timing, duplicate mismatch — are blended with fixed weights into `evidence`.
+**The hand-built model**
 
-8. **Fuse.** On audio rows, `confidence = max(model_risk, evidence)`.
+Separately, five kinds of evidence get their own scores between 0 and 1: content mismatch, drift, absolute offset, scattered timing, and duplicate mismatch. Each uses a hyperbolic-tangent curve against reference ranges fixed from an earlier sample. Their weighted sum is `evidence`:
 
-9. **Apply the quiz floors.** A quiz is a pre-computed sidecar that asks an audio model a question about the recording, so it is independent of the text-alignment machinery above. The base quiz asks, per key lyric line, whether that line is audible anywhere in the recording; the share of key lines absent from the audio gives `q_risk = 1 − q_key_frac`, which can only raise the score. The second sidecar probes single lines: it cuts a short audio clip around one lyric line, shows the audio model that line plus a decoy, and asks which one is sung. Rejecting the line twice at confidence ≥ 0.90 — the original probe plus two independent repeats, three votes — confirms the mismatch, floors confidence at 0.99, and the gate classifies the line as a `text` or `timing` defect from where the line's text actually appears in the transcript.
+```text
+evidence = 0.30 × content_mismatch
+         + 0.25 × drift
+         + 0.15 × absolute_offset
+         + 0.15 × scattered_timing
+         + 0.15 × duplicate_mismatch
+```
 
-10. **Decide.** At or above 0.65 the recording is `poor`, with a subtype when the evidence rule and the quiz gate disagree on which kind of defect it is.
+For recordings with audio alignment, the detector takes the higher of `model_risk` and `evidence`. A strong warning from the hand-built model can therefore raise a low trained-model score.
 
-## Three errors the detector caught
+**Lyrics quizzing against the audio**
 
-These three rows are unlabelled queue items, checked against the same transcript the detector sees. The excerpts are verbatim ASR output, including its recognition errors. They show what a flag looks like, not accuracy.
+The ASR comparison above checks lyrics against a transcript. The quiz adds questions to an audio model about the recording itself, with answers saved in pre-computed sidecar files. The base quiz asks whether each key lyric line is audible anywhere in the recording. If `q_key_frac` is the share found, then `q_risk = 1 − q_key_frac` is the share missing.
 
-### 1. The LRC is for a different song
+A second quiz checks individual lines near their timestamps. It cuts a short audio clip, presents the expected line and a decoy, and asks which one is sung. The original probe and two independent repeats give three votes. Two rejections at confidence ≥ 0.90 confirm a mismatch and raise the recording's score to at least 0.99. Where the expected words appear in the transcript helps classify the defect as text or timing.
 
-`1862ddfb0e81`. The LRC reads `[00:30.68] 藏我在 翅膀蔭下`; the transcript at the same times sings `安静 / 让平安入我心`. Verdict: `poor`, confidence 1.0000, subtype `text`. Evidence: `content_mismatch: only 0% of LRC lines match the vocals transcript`, `q_risk=1.0000`. Zero matched lines and a fully rejected quiz is what "wrong file" looks like.
+**The final score**
 
-### 2. One line stamped 22 times while the real lyric is different
+The quiz scores act as floors. They can raise suspicion, but they can't cancel a warning from the other two models. For a recording with alignment and a readable base quiz, the combination is:
 
-`0bd7ae0bf08d`. The LRC repeats `祢是配得讚美` 22 times across about six minutes; the transcript actually sings `亲爱的神灵来充满我的心` (the ASR renders 圣灵 as 神灵). Verdict: `poor`, confidence 0.9531, subtype `both`. Evidence: `consec_duplicates: 19 consecutive duplicate lines`, `content_mismatch: only 32% of LRC lines match the vocals transcript`, `localized_timing: 100% of matched lines off by >1s between 279s and 369s`. The file takes the ending refrain and stretches it over the whole recording, missing the first four minutes of real lyric.
+```text
+confidence = max(model_risk, evidence, q_risk)
+confidence = max(confidence, 0.99)  # if the line quiz confirms a mismatch
+```
 
-### 3. The file stops before the song repeats
+At **0.65 or above**, the recording is flagged `poor`, meaning Poor LRC quality. Below 0.65, it is called `good`. Poor recordings can also have subtype `text`, `timing`, or `both`; text and timing findings from the evidence rule and quiz gate are combined when they disagree.
 
-`4c398f507da0`. The LRC has 16 lines ending at `[02:06.01] 不要收回祢的聖靈`; the chorus repeats from about 191 s onward with nothing scheduled. Verdict: `poor`, confidence 0.8510, subtype `both`. Evidence: `missing_lines: 45% of vocal time has no lyric line`, `localized_timing: 100% of matched lines off by >1s between 102s and 192s`. Every quoted line exists and roughly matches; the defect is coverage and drift in the second half. The pairing prior matters here specifically: the previous version matched the final chorus to the first one and declared the whole file shifted by −137.53 s.
+I use that score to order review. `confidence: 0.95` shouldn't be read as a demonstrated 95% chance that a file is bad. That would need a labeled evaluation and calibration results. The same transcript contributing to a score and explaining it isn't independent confirmation either.
 
-## Work in progress
+## Three recorded flags
 
-Working through the ranked songs, I've confirmed that those with very high suspect scores indeed have LRC issues. But the list is long, and only by working through the entire 300+ songs backlog would I know how well the detector works.
+These were unlabelled queue items compared with the transcripts used by the detector. The ASR excerpts preserve recognition errors. They're examples of suspicious files, not an accuracy sample.
+
+**A different song's lyrics**
+
+For `1862ddfb0e81`, the LRC contains `[00:30.68] 藏我在 翅膀蔭下`, while the transcript at that part reads `安静 / 让平安入我心`. The recorded verdict is `poor`, score 1.0000, subtype `text`. It reports no matched LRC lines and quiz risk 1.0000.
+
+That is a useful file to inspect first. The flag suggests the wrong lyrics were attached; confirming that diagnosis still requires the recording and source file.
+
+**An ending refrain across the whole recording**
+
+For `0bd7ae0bf08d`, the LRC repeats `祢是配得讚美` 22 times across roughly six minutes. The transcript includes `亲爱的神灵来充满我的心`, with ASR rendering 聖靈 as 神灵. The recorded score is 0.9531, subtype `both`.
+
+The evidence lists 19 consecutive duplicates, only 32% of lines matching the transcript, and timing errors among matched lines between 279 and 369 seconds. Repetition alone is normal in worship music. Repetition that omits the other sung material is the reason to review this file.
+
+**The repeated chorus is missing**
+
+For `4c398f507da0`, 16 LRC lines end at `[02:06.01] 不要收回祢的聖靈`. The recorded transcript comparison finds another chorus from about 191 seconds with no lyrics scheduled. The score is 0.8510, subtype `both`, with 45% of vocal time reported uncovered.
+
+The earlier comparison recorded an apparent −137.53-second shift after matching the wrong chorus occurrence. That illustrates why repeated text needs a timing prior. Without the earlier and later evaluation artifacts, I can't claim a reproduced fix or quantify its improvement.
+
+The useful next measurement is a human-labeled review sample, including low-scoring files. Checking only the top of the list can show that it finds some bad files. It won't tell me how many it misses.
