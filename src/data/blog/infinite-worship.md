@@ -8,51 +8,64 @@ tags:
   - building
   - infinite-worship
   - music
-description: "How I rebuilt the Infinite Jukebox for worship music after the analysis API disappeared, and which songs still fight the method."
+description: "Rebuilding the Infinite Jukebox for worship music after the original analysis API disappeared"
 ---
 
-A worship set has a shape: a list of songs, a start time, and an end. The end is the part nobody designs. The last chorus fades, someone prays, and the room moves on. That's why the interesting question about worship music is not how to make a song longer. It's what happens if a song never has to end at all.
+I wanted to try the [Infinite Jukebox](https://infinitejukebox.playlistmachinery.com/) idea with Chinese worship music. The original project could turn a song into an endless remix by jumping between similar beats. But the public audio analysis API it depended on is no longer available, so I had to rebuild that part myself.
 
-Infinite Worship is a web app that plays a song as an endless remix by jumping between acoustically similar beats. Upload a track or import one from the catalog, and it analyzes the audio once, then walks a graph of interchangeable moments for as long as you leave it running. A jump is not a crossfade or a repeated chorus. It's a hard cut to a beat that already sounds like the beat that was about to arrive. The [live app](https://infinite-worship.vercel.app) and the [source](https://github.com/mhuang74/infinite-worship) are both open.
+The result is [Infinite Worship](https://infinite-worship.vercel.app), a web app that keeps a song playing by jumping between beats that sound alike. A song can be uploaded or imported from the catalog. It is analyzed once, then the player can keep choosing different paths through it. The [source code](https://github.com/mhuang74/infinite-worship) is also available.
 
 <!-- more -->
 
-## The five rules
+## How the playback works
 
-An infinite remix is not a longer song. It's a graph walk that stays inside the song's own vocabulary. Almost everything follows from five constraints, plus one optional filter for lyrics:
+The basic idea is to treat a song as a graph of beats. When the player reaches a beat with other similar beats, it may jump to one of them instead of continuing normally.
+
+Nothing too sophisticated on the playback side. I ended up with a few rules:
 
 - Beats are the atomic unit. A jump replaces the next beat. Audio is never stretched.
 - Match the beat you were about to play. The candidate must match the next beat's cluster, segment position, and measure position.
 - Analyze once, jump forever. The result is cached by content hash.
 - Randomize the path, bound the randomness. A jump rolls a 15 percent chance per beat, gated to at least 8 beats since the last jump, and no candidate closer than 16 beats away.
-- Own the edges. The last 16 beats fade out while the first 16 fade in over the first 8 beats, and a lyric filter keeps jumps within 500 ms of a line boundary so the song neither stops nor cuts mid-line.
+- Handle the start and end. The last 16 beats fade out while the first 16 fade in over the first 8 beats.
+- If lyrics are available, only jump within 500 ms of a line boundary.
 
-The whole thing rests on that first constraint. The player schedules one beat at a time, keeps a lookahead buffer, and a slow main thread can make it skip forward rather than schedule audio in the past.
+The jump is a hard cut, not a crossfade. It works when the replacement beat sounds close enough to the beat that was supposed to play next. The player schedules one beat at a time with a small lookahead buffer. If the browser falls behind, it skips forward instead of trying to schedule audio in the past.
 
-## The API that made this possible, and then did not
+## Replacing the missing analysis API
 
-The original Infinite Jukebox was a weekend hack built on a public analysis endpoint that returned beat and section data. That API is gone. New apps can't use the audio-analysis endpoints now. Without that, the analysis that made the original a weekend project is the hard part.
+The original Infinite Jukebox used a public API that returned beats, sections, and other analysis for a song. New apps can no longer use those audio analysis endpoints. Without that data, the hard part is figuring out which beats are safe to connect.
 
-I chose to run it in-house: librosa, madmom, and scikit-learn behind a containerized worker, off the request path. That's where the minutes-long analysis happens. The results are cached by the audio hash, so identical audio uploaded by two different people resolves to one analysis.
+I run the analysis myself using [librosa](https://librosa.org/), [madmom](https://github.com/CPJKU/madmom), and [scikit-learn](https://scikit-learn.org/). They run inside a containerized worker because analyzing one song can take a few minutes. Results are cached by the audio hash, so the same audio file only needs to be analyzed once even when uploaded by different people.
 
 ## Turning audio into a jump graph
 
-The pipeline is a straight shot from waveform to labeled graph. In order: load the file, trim silence, compute a constant-Q transform, detect downbeats, aggregate to one vector per beat, build the similarity graph, smooth it, combine repetition with sequence, take the graph Laplacian and cluster, then serialize segments and jump candidates.
+Here is the rough analysis flow:
 
-The tricky part is choosing the number of clusters. Silhouette alone doesn't work: too many clusters gives clean matches with nowhere to jump. Too few gives promiscuous jumps. The fitness function rewards a segmentation that actually has somewhere to go.
+1. Load the audio and trim silence.
+2. Compute a constant-Q transform.
+3. Detect beats and downbeats.
+4. Combine the audio features into one vector per beat.
+5. Build and smooth a similarity graph.
+6. Combine repetition and sequence information.
+7. Cluster the graph and generate jump candidates.
+
+The number of clusters took some tuning. Using only the silhouette score produced clusters that looked clean mathematically, but sometimes left the player with almost nowhere to jump. Too few clusters had the opposite problem and allowed too many questionable jumps. So the fitness function also rewards a result that has useful jump choices.
 
 ## What the catalog taught me
 
-Testing against a large set of real Chinese worship songs exposed a flaw immediately: a jump could leave or land mid-sentence. Even when the audio seam was invisible, the lyric became a fragment.
+Testing with real Chinese worship songs exposed one obvious problem. A jump could leave or land in the middle of a sentence. The audio transition might sound fine, but the resulting lyric made no sense.
 
-The lyric filter fixed that mechanically by forcing jumps to line boundaries, but the effect was smaller than I hoped. Fewer jumps were cleaner, yet not musically inevitable. The problem is worst on slower worship songs with sparse arrangements and fewer interchangeable beats. On faster, simpler, more repetitive material it works better.
+I added a filter that keeps jumps close to lyric line boundaries. It helped, although less than I hoped. There were fewer broken sentences, but a clean lyric boundary did not automatically make a jump feel musically natural.
 
-So infinite playback is partly a fit problem, not only an algorithm problem. The next step is a gate that decides which songs belong in the infinite-playback set, rather than tuning jump probability for songs that will never work.
+Slower songs with sparse arrangements tend to have fewer interchangeable beats. Faster, simpler, and more repetitive songs usually work better. I think song selection may matter as much as more algorithm tuning. Some songs just may not be a good fit for infinite playback.
 
 ## What still breaks
 
-Musical. The measure assumption is four beats per bar, so other meters get weaker candidates. There's no key or tempo normalization, so a jump can land in the wrong key or energy. Songs with little repetition yield few candidates.
+There are still quite a few limitations.
 
-Engineering. Analysis is minutes, not milliseconds. The dependency matrix is fragile. Browser scheduling has a floor. Content hashing is not access control. Changing the DSP parameters doesn't invalidate existing cached analyses.
+The analysis assumes four beats per measure, so songs in other time signatures get weaker jump candidates. There is no key or tempo normalization. Songs with little repetition may not produce enough candidates at all.
 
-The project is open source, the app is live, and the next milestone is the song-suitability classifier rather than more probability tuning.
+On the engineering side, analysis takes minutes instead of milliseconds. The audio dependencies are also a bit fragile, and browser scheduling can only be so precise. Content hashing avoids repeated work, but it is not access control. Changing the DSP parameters also does not invalidate old cached results yet.
+
+My next step is probably a song suitability check before analysis. It seems more useful to warn that a song is a poor fit than to keep adjusting jump probability for a song that was never going to work well.
