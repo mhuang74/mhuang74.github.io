@@ -1,0 +1,30 @@
+---
+import Main from "@/layouts/Main.astro";
+import Layout from "@/layouts/Layout.astro";
+import Tag from "@/components/Tag.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import { getZhListing } from "@/i18n/blog";
+import getUniqueTags from "@/utils/getUniqueTags";
+import { getTagLabel } from "@/i18n/tagLabels";
+import { t } from "@/i18n/ui";
+import { SITE } from "@/config";
+
+const locale = "zh-tw";
+const listing = await getZhListing();
+const tags = getUniqueTags(listing.map(item => item.entry));
+---
+
+<Layout title={`${t(locale, "tags.title")} | ${SITE.title}`}>
+  <Header />
+  <Main pageTitle={t(locale, "tags.title")} pageDesc={t(locale, "tags.desc")}>
+    <ul>
+      {
+        tags.map(({ tag }) => (
+          <Tag tag={tag} tagName={getTagLabel(locale, tag)} size="lg" />
+        ))
+      }
+    </ul>
+  </Main>
+  <Footer />
+</Layout>

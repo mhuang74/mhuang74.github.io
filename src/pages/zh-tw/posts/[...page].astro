@@ -1,0 +1,56 @@
+---
+import type { GetStaticPaths } from "astro";
+import Main from "@/layouts/Main.astro";
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import Card from "@/components/Card.astro";
+import Pagination from "@/components/Pagination.astro";
+import { getZhListing } from "@/i18n/blog";
+import getPostReadingOrder from "@/utils/getPostReadingOrder";
+import { t } from "@/i18n/ui";
+import { SITE } from "@/config";
+
+const locale = "zh-tw";
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const listing = await getZhListing();
+  const byId = new Map(listing.map(item => [item.entry.id, item.entry]));
+  const ordered = getPostReadingOrder(listing.map(item => item.entry)).map(
+    entry => byId.get(entry.id) as (typeof listing)[number]["entry"]
+  );
+  return paginate(ordered, { pageSize: SITE.postPerPage });
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props;
+---
+
+<Layout
+  title={`${t(locale, "breadcrumb.posts")} | ${SITE.title}`}
+  alternates={page.currentPage === 1 ? undefined : null}
+>
+  <Header />
+  <Main
+    pageTitle={t(locale, "breadcrumb.posts")}
+    pageDesc={t(locale, "posts.desc")}
+  >
+    <ul>
+      {
+        page.data.map(entry => (
+          <Card
+            {...entry}
+            badge={
+              entry.collection === "blog"
+                ? t(locale, "post.englishBadge")
+                : undefined
+            }
+          />
+        ))
+      }
+    </ul>
+  </Main>
+
+  <Pagination {page} />
+
+  <Footer noMarginTop={page.lastPage > 1} />
+</Layout>

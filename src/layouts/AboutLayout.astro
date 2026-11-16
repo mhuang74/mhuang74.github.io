@@ -4,6 +4,7 @@ import Footer from "@/components/Footer.astro";
 import Breadcrumb from "@/components/Breadcrumb.astro";
 import Socials from "@/components/Socials.astro";
 import Layout from "./Layout.astro";
+import { getLocaleFromPath } from "@/i18n/locale";
 import { SITE } from "@/config";
 
 export interface Props {
@@ -14,12 +15,13 @@ export interface Props {
 }
 
 const { frontmatter } = Astro.props;
+const isZhTw = getLocaleFromPath(Astro.url.pathname) === "zh-tw";
 ---
 
 <Layout title={`${frontmatter.title} | ${SITE.title}`}>
   <Header />
   <Breadcrumb />
-  <main id="main-content">
+  <main id="main-content" data-pagefind-body={isZhTw ? true : undefined}>
     <section id="about" class="app-prose mb-28 max-w-app prose-img:border-0">
       <h1 class="text-2xl tracking-wider sm:text-3xl">{frontmatter.title}</h1>
       <slot />

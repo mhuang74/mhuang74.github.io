@@ -1,5 +1,5 @@
 ---
-import { render, type CollectionEntry } from "astro:content";
+import { getCollection, render } from "astro:content";
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
@@ -9,19 +9,23 @@ import EditPost from "@/components/EditPost.astro";
 import ShareLinks from "@/components/ShareLinks.astro";
 import BackButton from "@/components/BackButton.astro";
 import BackToTopButton from "@/components/BackToTopButton.astro";
-import { getPath } from "@/utils/getPath";
 import getPostNavigation from "@/utils/getPostNavigation";
 import { slugifyStr } from "@/utils/slugify";
+import { getPostHref, type PostEntry } from "@/utils/entryPath";
+import { getLocaleFromPath } from "@/i18n/locale";
+import { getTagLabel } from "@/i18n/tagLabels";
+import { t } from "@/i18n/ui";
 import IconChevronLeft from "@/assets/icons/IconChevronLeft.svg";
 import IconChevronRight from "@/assets/icons/IconChevronRight.svg";
 import { SITE } from "@/config";
 
 export interface Props {
-  post: CollectionEntry<"blog">;
-  posts: CollectionEntry<"blog">[];
+  post: PostEntry;
+  posts: PostEntry[];
 }
 
 const { post, posts } = Astro.props;
+const locale = getLocaleFromPath(Astro.url.pathname);
 
 const {
   title,
@@ -36,7 +40,8 @@ const {
   hideEditPost,
 } = post.data;
 
-const { Content } = await render(post);
+const { Content } =
+  post.collection === "blog" ? await render(post) : await render(post);
 
 let ogImageUrl: string | undefined;
 
@@ -49,13 +54,44 @@ if (typeof initOgImage === "string") {
 
 // Use dynamic OG image if enabled and no remote|local ogImage
 if (!ogImageUrl && SITE.dynamicOgImage) {
-  ogImageUrl = `${getPath(post.id, post.filePath)}/index.png`;
+  ogImageUrl = `${getPostHref(post)}/index.png`;
 }
 
 // Resolve OG image URL (or fallback to SITE.ogImage / default `og.png`)
 const ogImage = ogImageUrl
   ? new URL(ogImageUrl, Astro.url.origin).href
   : undefined;
+
+/* ========== Translation counterpart ========== */
+
+const [enPosts, zhPosts] = await Promise.all([
+  getCollection("blog"),
+  getCollection("blogZhTw"),
+]);
+
+const counterpart =
+  locale === "zh-tw"
+    ? enPosts.find(p => p.id === post.id)
+    : zhPosts.find(p => p.id === post.id);
+
+const alternates = counterpart
+  ? {
+      en: getPostHref(locale === "en" ? post : counterpart),
+      "zh-tw": getPostHref(locale === "zh-tw" ? post : counterpart),
+    }
+  : null;
+
+const switchHref = counterpart
+  ? getPostHref(counterpart)
+  : locale === "en"
+    ? "/zh-tw/posts"
+    : "/posts";
+
+const isOutdated =
+  post.collection === "blogZhTw" &&
+  counterpart !== undefined &&
+  (counterpart.data.modDatetime ?? counterpart.data.pubDatetime) >
+    post.data.sourceUpdated;
 
 const layoutProps = {
   title: `${title} | ${SITE.title}`,
@@ -66,6 +102,7 @@ const layoutProps = {
   canonicalURL,
   ogImage,
   scrollSmooth: true,
+  alternates,
 };
 
 /* ========== Prev/Next Posts ========== */
@@ -74,7 +111,7 @@ const { prevPost, nextPost } = getPostNavigation(post.id, posts);
 ---
 
 <Layout {...layoutProps}>
-  <Header />
+  <Header {switchHref} />
   <BackButton />
   <main
     id="main-content"
@@ -85,7 +122,7 @@ const { prevPost, nextPost } = getPostNavigation(post.id, posts);
     data-pagefind-body
   >
     <h1
-      transition:name={slugifyStr(title)}
+      transition:name={slugifyStr(title) || post.id}
       class="inline-block text-2xl font-bold text-accent sm:text-3xl"
     >
       {title}
@@ -105,6 +142,16 @@ const { prevPost, nextPost } = getPostNavigation(post.id, posts);
       id="article"
       class="app-prose mx-auto mt-8 max-w-app prose-pre:bg-(--shiki-light-bg) dark:prose-pre:bg-(--shiki-dark-bg)"
     >
+      {
+        isOutdated && post.collection === "blogZhTw" && counterpart && (
+          <aside class="not-prose mb-8 rounded-lg border border-border bg-muted/40 p-4 text-sm">
+            <p class="m-0">{t(locale, "post.outdated")}</p>
+            <a class="mt-2 inline-block" href={getPostHref(counterpart)}>
+              {t(locale, "post.readEnglish")}
+            </a>
+          </aside>
+        )
+      }
       <Content />
     </article>
 
@@ -113,7 +160,14 @@ const { prevPost, nextPost } = getPostNavigation(post.id, posts);
     <EditPost class="sm:hidden" {hideEditPost} {post} />
 
     <ul class="mt-4 mb-8 sm:my-8">
-      {tags.map(tag => <Tag tag={slugifyStr(tag)} tagName={tag} />)}
+      {
+        tags.map(tag => (
+          <Tag
+            tag={slugifyStr(tag)}
+            tagName={getTagLabel(locale, slugifyStr(tag))}
+          />
+        ))
+      }
     </ul>
 
     <BackToTopButton />
@@ -127,12 +181,12 @@ const { prevPost, nextPost } = getPostNavigation(post.id, posts);
       {
         prevPost && (
           <a
-            href={getPath(prevPost.id, prevPost.filePath)}
+            href={getPostHref(prevPost)}
             class="flex w-full gap-1 hover:opacity-75"
           >
             <IconChevronLeft class="inline-block flex-none rtl:rotate-180" />
             <div>
-              <span>Previous Post</span>
+              <span>{t(locale, "post.previous")}</span>
               <div class="text-sm text-accent/85">{prevPost.data.title}</div>
             </div>
           </a>
@@ -141,11 +195,11 @@ const { prevPost, nextPost } = getPostNavigation(post.id, posts);
       {
         nextPost && (
           <a
-            href={getPath(nextPost.id, nextPost.filePath)}
+            href={getPostHref(nextPost)}
             class="flex w-full justify-end gap-1 text-end hover:opacity-75 sm:col-start-2"
           >
             <div>
-              <span>Next Post</span>
+              <span>{t(locale, "post.next")}</span>
               <div class="text-sm text-accent/85">{nextPost.data.title}</div>
             </div>
             <IconChevronRight class="inline-block flex-none rtl:rotate-180" />
@@ -224,7 +278,10 @@ const { prevPost, nextPost } = getPostNavigation(post.id, posts);
   /** Attaches copy buttons to code blocks in the document,
    * allowing users to copy code easily. */
   function attachCopyButtons() {
-    const copyButtonLabel = "Copy";
+    const isZhTw =
+      location.pathname === "/zh-tw" || location.pathname.startsWith("/zh-tw/");
+    const copyButtonLabel = isZhTw ? "複製" : "Copy";
+    const copiedButtonLabel = isZhTw ? "已複製" : "Copied";
     const codeBlocks = Array.from(document.querySelectorAll("pre"));
 
     for (const codeBlock of codeBlocks) {
@@ -263,7 +320,7 @@ const { prevPost, nextPost } = getPostNavigation(post.id, posts);
       await navigator.clipboard.writeText(text ?? "");
 
       // visual feedback that task is completed
-      button.innerText = "Copied";
+      button.innerText = copiedButtonLabel;
 
       setTimeout(() => {
         button.innerText = copyButtonLabel;

@@ -1,8 +1,11 @@
 ---
 import Hr from "./Hr.astro";
 import Socials from "./Socials.astro";
+import { getLocaleFromPath, localizePath } from "@/i18n/locale";
+import { t } from "@/i18n/ui";
 
 const currentYear = new Date().getFullYear();
+const locale = getLocaleFromPath(Astro.url.pathname);
 
 export interface Props {
   noMarginTop?: boolean;
@@ -20,15 +23,19 @@ const { noMarginTop = false } = Astro.props;
     <div class="my-2 flex flex-col items-center whitespace-nowrap sm:flex-row">
       <span>Copyright &#169; {currentYear}</span>
       <span class="hidden sm:inline">&nbsp;|&nbsp;</span>
-      <span>All rights reserved.</span>
+      <span>{t(locale, "footer.rights")}</span>
     </div>
-    <nav aria-label="Footer" class="mb-2 sm:mb-0">
+    <nav aria-label={t(locale, "footer.label")} class="mb-2 sm:mb-0">
       <ul class="flex gap-4 font-mono text-sm">
         <li>
-          <a href="/tags" class="hover:text-accent"> Tags </a>
+          <a href={localizePath("/tags", locale)} class="hover:text-accent">
+            {t(locale, "tags.title")}
+          </a>
         </li>
         <li>
-          <a href="/archives" class="hover:text-accent"> Archives </a>
+          <a href={localizePath("/archives", locale)} class="hover:text-accent">
+            {t(locale, "breadcrumb.archives")}
+          </a>
         </li>
       </ul>
     </nav>

@@ -10,6 +10,7 @@ import Pagination from "@/components/Pagination.astro";
 import getUniqueTags from "@/utils/getUniqueTags";
 import getPostsByTag from "@/utils/getPostsByTag";
 import { SITE } from "@/config";
+import { slugifyAll } from "@/utils/slugify";
 
 export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const posts = await getCollection("blog");
@@ -29,10 +30,16 @@ export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
 const params = Astro.params;
 const { tag } = params;
 const { page, tagName } = Astro.props;
+
+const zhPosts = await getCollection("blogZhTw");
+const zhHasTag = zhPosts.some(post =>
+  slugifyAll(post.data.tags).includes(tag ?? "")
+);
+const alternates = page.currentPage === 1 && zhHasTag ? undefined : null;
 ---
 
-<Layout title={`Tag: ${tagName} | ${SITE.title}`}>
-  <Header />
+<Layout title={`Tag: ${tagName} | ${SITE.title}`} {alternates}>
+  <Header switchHref={zhHasTag ? undefined : "/zh-tw/tags"} />
   <Main
     pageTitle={[`Tag:`, `${tagName}`]}
     titleTransition={tag}

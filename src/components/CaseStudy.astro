@@ -1,0 +1,82 @@
+---
+import type { AstroComponentFactory } from "astro/runtime/server/index.js";
+import type { Locale } from "@/i18n/locale";
+import { t } from "@/i18n/ui";
+import type { WorkEntry } from "@/utils/entryPath";
+
+export interface Props {
+  entry: WorkEntry;
+  locale: Locale;
+  Content: AstroComponentFactory;
+}
+
+const { entry, locale, Content } = Astro.props;
+const { title, role, team, stack, outcomes } = entry.data;
+---
+
+<main id="main-content" class="mx-auto w-full max-w-app px-4">
+  <section
+    id="case-study"
+    class="app-prose mb-28 max-w-app prose-img:border-0"
+    data-pagefind-body={locale === "zh-tw" ? true : undefined}
+  >
+    <p class="font-mono text-xs tracking-widest text-accent uppercase">
+      {t(locale, "work.caseStudy")}
+    </p>
+    <h1 class="mt-2 text-2xl tracking-wider sm:text-3xl">{title}</h1>
+
+    <dl
+      class="not-prose mt-6 grid grid-cols-1 gap-4 rounded-lg border border-border p-5 sm:grid-cols-3"
+    >
+      <div>
+        <dt
+          class="font-mono text-xs tracking-widest text-foreground/60 uppercase"
+        >
+          {t(locale, "work.role")}
+        </dt>
+        <dd class="mt-1 text-sm">{role}</dd>
+      </div>
+      <div>
+        <dt
+          class="font-mono text-xs tracking-widest text-foreground/60 uppercase"
+        >
+          {t(locale, "work.team")}
+        </dt>
+        <dd class="mt-1 text-sm">{team}</dd>
+      </div>
+      <div>
+        <dt
+          class="font-mono text-xs tracking-widest text-foreground/60 uppercase"
+        >
+          {t(locale, "work.stack")}
+        </dt>
+        <dd class="mt-1 flex flex-wrap gap-1.5">
+          {
+            stack.map(s => (
+              <span class="rounded-full bg-muted px-2 py-0.5 font-mono text-xs">
+                {s}
+              </span>
+            ))
+          }
+        </dd>
+      </div>
+    </dl>
+
+    {
+      outcomes.length > 0 && (
+        <ul class="not-prose mt-4 flex flex-col gap-2">
+          {outcomes.map(o => (
+            <li class="flex items-start gap-2 font-mono text-sm">
+              <span class="mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full bg-accent" />
+              <span>{o}</span>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    <div class="mt-8">
+      <Content />
+    </div>
+  </section>
+</main>
