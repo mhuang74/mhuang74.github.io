@@ -42,8 +42,11 @@ const pageDesc = format(t(locale, "tags.tagDesc"), { name: tagLabel });
   alternates={page.currentPage === 1 ? undefined : null}
 >
   <Header />
-  <Main pageTitle={pageTitle} titleTransition={tag} {pageDesc}>
-    <h1 slot="title" transition:name={tag}>{pageTitle}</h1>
+  <Main
+    pageTitle={[`${t(locale, "tags.title")}：`, tagLabel]}
+    titleTransition={tag}
+    {pageDesc}
+  >
     <ul>
       {
         page.data.map(entry => (
