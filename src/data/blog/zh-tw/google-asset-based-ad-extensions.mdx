@@ -1,0 +1,280 @@
+---
+title: Google Ads 素材資源型廣告額外資訊
+author: Michael Huang
+pubDatetime: 2022-04-12T00:00:00Z
+slug: google-asset-based-ad-extensions
+featured: true
+draft: false
+tags:
+  - chart
+  - google ads
+  - zola
+description: 快速看一下採用情況
+translationOf: google-asset-based-ad-extensions
+sourceUpdated: 2022-04-12T00:00:00Z
+---
+
+import VegaChart from "@/components/VegaChart.astro";
+
+在另一篇[文章](/zh-tw/posts/quick-look-at-charts)裡，我寫過怎麼在靜態網站產生器產生的部落格文章裡畫圖表。這篇我把同樣的手法用在 Google Ads 成效資料上。沒什麼高深的東西，我只是想追一下素材資源型廣告額外資訊（Asset-based Ad Extensions）從 2022 年初開始的每日曝光趨勢，因為官方規定的[自動遷移](https://ads-developers.googleblog.com/2022/01/revised-schedule-for-auto-migration-of.html)已經開始了。
+
+用到的 CSV 資料在[這裡](/all_asset_field_type_view_ytd_cleaned.csv)和[這裡](/combined_ad_extensions_ytd.csv)。
+
+## 取得資料
+
+Google 的[自動遷移時程](https://ads-developers.googleblog.com/2022/01/revised-schedule-for-auto-migration-of.html)從 2022 年 1 月 10 日的 Sitelinks、Callout 和 Structured Snippets 開始。第二批從 4 月 8 日開始，包含 Call、App、Hotel Callout 和 Price 這幾種額外資訊。因為客戶也可以自己提前遷移，所以看一下每一種廣告額外資訊型別，從 Feeditem 轉到素材資源型的實際流量變化，應該會很有意思。
+
+我用一個叫 [mccfind](https://github.com/mhuang74/mcc-find-rs) 的工具（我的 Rust 練習專案之一），透過下面這段 [GAQL](https://developers.google.com/google-ads/api/docs/query/overview) 抓出額外資訊層級的每日流量。這段查詢會套用到約 1000 個 Google Ads 帳戶，結果依日期和額外資訊型別彙總，存成純文字的 CSV。
+
+```
+mccfind -q asset_field_type_view_ytd --groupby "asset_field_type_view.field_type" --groupby "segments.date"  -o all_asset_field_type_view_ytd.csv
+```
+
+**取得所有素材資源型廣告額外資訊年初至今流量的 GAQL**
+
+```sql
+SELECT
+  asset_field_type_view.field_type,
+  segments.date,
+  metrics.impressions,
+  metrics.clicks,
+  metrics.cost_micros,
+  customer.currency_code
+FROM asset_field_type_view
+WHERE
+  segments.year IN (2022)
+  AND metrics.impressions > 1
+ORDER BY
+  asset_field_type_view.field_type, segments.date
+```
+
+輸出檔做了一點清理：拿掉 _date_ 欄位裡多餘的 `"` 引號，還有表頭名稱裡的 `.`（例如把 `segments.date` 變成單純的 `date`）。
+
+```
+$ cat all_asset_field_type_view_ytd.csv | sed 's/[a-z_]*\.//g' | sed 's/"//g' > all_asset_field_type_view_ytd_cleaned.csv
+```
+
+下面是[清理後的 CSV](/all_asset_field_type_view_ytd_cleaned.csv) 的一小段。要注意的是，_cost_ 欄位的加總並不正確，因為彙總時沒有做幣別換算。
+
+**all_asset_field_type_view_ytd_cleaned.csv 的一小段**
+
+```
+field_type,date,impressions_sum_sum,clicks_sum_sum,cost_micros_sum_sum
+Call,2022-02-11,63,2,139000000
+Call,2022-02-12,63,4,242000000
+Call,2022-02-14,95,7,301000000
+Call,2022-02-15,93,5,326000000
+```
+
+## 依額外資訊型別看素材資源型流量
+
+廣告額外資訊是顯示在廣告旁邊的補充素材，可以強化品牌或產品定位，但不一定會被點擊。所以我們看每日總 _曝光數_，而不是 _點擊數_ 或 _成本_。
+
+下面是拿上面那份 CSV、用 [vega-lite](https://vega.github.io/vega-lite/) 畫出的每日曝光趨勢圖。
+
+**年初至今每日曝光：依素材資源型額外資訊型別**
+
+<VegaChart
+  id="vis"
+  spec={{
+    $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+    width: 450,
+    height: 300,
+    data: { url: "/all_asset_field_type_view_ytd_cleaned.csv" },
+    mark: {
+      type: "bar",
+      tooltip: true,
+    },
+    encoding: {
+      x: {
+        field: "date",
+        type: "temporal",
+        bin: false,
+        sort: "x",
+      },
+      y: {
+        field: "impressions_sum_sum",
+        type: "quantitative",
+      },
+      color: { field: "field_type", type: "nominal" },
+    },
+  }}
+/>
+
+從圖上看很清楚，大部分的流量來自 Callout 和 Sitelinks 額外資訊。Structured Snippets 只占很小一部分，其餘型別甚至完全看不到。
+
+就遷移時程來說，對照最初公告的 2022 年 1 月 10 日，素材資源型流量要到 2 月 9 日之後才開始明顯上升，並在 2 月 17 日左右趨於平穩。
+
+## 追蹤素材資源型遷移的進度
+
+要追蹤有多少廣告額外資訊流量已經遷移到素材資源型，我們把素材資源型和 Feeditem 兩邊的年初至今每日曝光一起畫出來。
+
+第一步是用這段 GAQL 把 Feeditem 流量抓下來。
+
+```
+mccfind -q feed_placeholder_view_ytd --groupby "feed_placeholder_view.placeholder_type" --groupby "segments.date"  -o all_feed_placeholder_view_ytd.csv
+```
+
+**下載所有廣告額外資訊 Feeditem 流量的 GAQL**
+
+```
+SELECT
+  feed_placeholder_view.placeholder_type,
+  segments.date,
+  metrics.impressions,
+  metrics.clicks,
+  metrics.cost_micros,
+  customer.currency_code
+FROM feed_placeholder_view
+WHERE
+  segments.year IN (2022)
+  AND metrics.impressions > 1
+ORDER BY
+  feed_placeholder_view.placeholder_type, segments.date
+```
+
+要把 Feeditem 和素材資源型 Sitelinks 的流量畫在同一張圖上，得先把兩個 CSV 合起來，並加一個新的 _category_ 欄位，標記每一列是 Feeditem 還是素材資源型。
+
+```
+$ echo "category,type,date,impressions,clicks,cost_micros" > combined_ad_extensions_ytd.csv
+$ cat all_feed_placeholder_view_ytd.csv | grep -v "metrics" | awk '{print "Feeditem,"$0}' | sed 's/"//g' >> combined_ad_extensions_ytd.csv
+$ cat all_asset_field_type_view_ytd.csv | grep -v "metrics" | awk '{print "Asset,"$0}' | sed 's/"//g' >> combined_ad_extensions_ytd.csv
+```
+
+下面是[合併後的 csv](/combined_ad_extensions_ytd.csv) 裡 Sitelinks 資料的一小段。有趣的是，素材資源型 Sitelinks 從 2022 年 1 月 1 日起就已經有流量了，雖然很少——有些客戶提早開始。
+
+**Sitelinks 的年初至今每日曝光**
+
+<VegaChart
+  id="vis2"
+  spec={{
+    $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+    width: 450,
+    height: 300,
+    data: { url: "/combined_ad_extensions_ytd.csv" },
+    transform: [{ filter: { field: "type", oneOf: ["Sitelink"] } }],
+    mark: {
+      type: "bar",
+      tooltip: true,
+    },
+    encoding: {
+      x: {
+        field: "date",
+        type: "temporal",
+        bin: false,
+        sort: "x",
+      },
+      y: {
+        field: "impressions",
+        type: "quantitative",
+      },
+      color: { field: "category", type: "nominal" },
+    },
+  }}
+/>
+
+同樣地，Callout 額外資訊：
+
+**Callout 的年初至今每日曝光**
+
+<VegaChart
+  id="vis3"
+  spec={{
+    $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+    width: 450,
+    height: 300,
+    data: { url: "/combined_ad_extensions_ytd.csv" },
+    transform: [{ filter: { field: "type", oneOf: ["Callout"] } }],
+    mark: {
+      type: "bar",
+      tooltip: true,
+    },
+    encoding: {
+      x: {
+        field: "date",
+        type: "temporal",
+        bin: false,
+        sort: "x",
+      },
+      y: {
+        field: "impressions",
+        type: "quantitative",
+      },
+      color: { field: "category", type: "nominal" },
+    },
+  }}
+/>
+
+還有 Structured Snippet：
+
+**Structured Snippet 的年初至今每日曝光**
+
+<VegaChart
+  id="vis4"
+  spec={{
+    $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+    width: 450,
+    height: 300,
+    data: { url: "/combined_ad_extensions_ytd.csv" },
+    transform: [{ filter: { field: "type", oneOf: ["StructuredSnippet"] } }],
+    mark: {
+      type: "bar",
+      tooltip: true,
+    },
+    encoding: {
+      x: {
+        field: "date",
+        type: "temporal",
+        bin: false,
+        sort: "x",
+      },
+      y: {
+        field: "impressions",
+        type: "quantitative",
+      },
+      color: { field: "category", type: "nominal" },
+    },
+  }}
+/>
+
+最後是 Promotion 額外資訊：
+
+**Promotion 額外資訊的年初至今每日曝光**
+
+<VegaChart
+  id="vis5"
+  spec={{
+    $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+    width: 450,
+    height: 300,
+    data: { url: "/combined_ad_extensions_ytd.csv" },
+    transform: [{ filter: { field: "type", oneOf: ["Promotion"] } }],
+    mark: {
+      type: "bar",
+      tooltip: true,
+    },
+    encoding: {
+      x: {
+        field: "date",
+        type: "temporal",
+        bin: false,
+        sort: "x",
+      },
+      y: {
+        field: "impressions",
+        type: "quantitative",
+      },
+      color: { field: "category", type: "nominal" },
+    },
+  }}
+/>
+
+## 小結
+
+把素材資源型廣告額外資訊遷移過程中的每日曝光變化畫出來，可以看到幾個趨勢：
+
+- 有些客戶從 2022 年 1 月 1 日就有素材資源型曝光，拿來試新格式
+- Sitelinks、Callout 和 Structured Snippet 的大部分流量在 2022 年 2 月 17 日左右轉到素材資源型
+- 到 4 月 12 日為止，仍有約 10% 在跑的廣告額外資訊還是 Feeditem 形式
+- 接近 3 月底時，大多數額外資訊型別都出現下滑趨勢。不確定是否和遷移到素材資源型有關
+- Promotion 額外資訊呈現很不一樣的週期性流量模式，而且仍有較高比例留在 Feeditem 類別

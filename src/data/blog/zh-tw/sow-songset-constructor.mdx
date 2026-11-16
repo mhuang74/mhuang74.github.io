@@ -1,0 +1,75 @@
+---
+title: "歌曲組建構器：在敬拜弧線裡搜尋"
+author: Michael Huang
+pubDatetime: 2026-07-28T00:00:00Z
+modDatetime: 2026-11-06T00:00:00Z
+slug: sow-songset-constructor
+featured: false
+draft: false
+tags:
+  - stream-of-worship
+  - machine-learning
+  - design
+description: "固定的階段模板、確定性的檢查，還有一個歷史上的排序歌曲組範例。"
+translationOf: sow-songset-constructor
+sourceUpdated: 2026-11-06T00:00:00Z
+---
+
+import ShowcaseSetExplorer from "@/components/ShowcaseSetExplorer.astro";
+
+我想做一個工具，幫忙把敬拜歌單組起來。挑好歌只是其中一部分。我還要一個有用的順序、可控的轉場，以及一組塞得進可用時間的歌。
+
+語言模型可以把一組建議講得很有說服力，卻一項細節都沒檢查。所以建構器用程式碼來搜尋、驗證、評分。模型可以幫忙規劃和加註解，但它的說法不會讓一個建議變得有效。
+
+這是[《Stream of Worship》系列](/zh-tw/posts/sow-intro)的一部分。上一篇：[轉場引擎](/zh-tw/posts/sow-transition-engine)。下一篇：[網頁應用](/zh-tw/posts/sow-webapp-architecture)。
+
+{/* more */}
+
+## 先決定形狀
+
+我用五個階段：呼召、感謝、敬拜、回應、差遣。[配適模板](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/songset_constructor/rules/fitness.py)在兩首歌時是 `(1, 4)`，三首是 `(1, 3, 5)`，四首是 `(1, 3, 4, 5)`，五首就五個階段全上。
+
+那些是目標形狀，不是每個被接受的建議都必須完全符合的階段要求。驗證器和放寬設定允許變化。兩首到五首之外的數量會直接被拒絕，不會默默縮減。
+
+主題的備援會綜合標題比對、歌詞比對、歌曲嵌入向量和逐行嵌入向量。有元件的中繼資料時，副歌的分類比其他段落權重更高，並依信心值調整。它是在彙整這些票；不是直接把最後一段副歌的主題派給整個錄音。主題證據完全沒有時，速度分帶是最後一層備援。
+
+## 目前的檢查管到哪裡
+
+[驗證器](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/ops/admin-cli/src/stream_of_worship/admin/songset_constructor/rules/hard_constraints.py)有十項檢查：數量 H0，接著 H1–H9 分別是階段涵蓋、開場速度、收尾速度、相鄰速度差、和聲距離、重複歌曲、階段推進、調性信心、總長度。
+
+有些細節很容易漏掉：
+
+- 預設開場下限是 90 BPM；收尾上限是 90，親密模式是 80。這兩端優先用邊界 BPM。
+- 相鄰速度差在進場歌曲有正的間隔或交叉淡化長度時上限是 45 BPM，其他情況是 40。只有間隔也算符合較寬的容許值。
+- 和聲距離預設是三個五度步。正的交叉淡化長度，或相符的非零建議移調，可以繞過距離的拒絕。
+- 階段推進允許退回一個階段，主要和次要階段都會納入考慮。它不是嚴格單調。
+- 25 分鐘的長度檢查是把整首歌的長度加總。長度未知的算零，間隔與重疊的時間不算在這筆總和裡。
+
+放寬可以把速度和和聲的限制放鬆，也讓階段涵蓋變鬆。最後用的設定要跟輸出放在一起。特別是：一次設定成放寬階段涵蓋的執行，不該因為警告清單是空的，就說它通過了嚴格模板。
+
+## 幫有效的建議排序
+
+基礎權重是主題 0.40、速度 0.30、和聲 0.20、多樣性 0.10。能量和姿態各可以再拿 0.05，有它們時基礎那幾項會按比例縮小。缺了這些訊號不代表建議很差；它代表這個分數帶的資訊比較少。
+
+分數取決於這些選擇。它們沒有跨不同歌曲池、不同特徵涵蓋率、不同程式版本做過校準。連能量函式都要小心：它的註解寫的是比較柔和的收尾，但目前的弧線算式會懲罰開場排名高於收尾排名的情況。我不能說它穩定地獎勵了想要的那種下降。
+
+建構器有一條不靠 LLM 的確定性路徑。這樣就能把搜尋本身跟模型對結果寫的那段文字分開來檢查。
+
+## 7 月 26 日的範例輸出
+
+這是存下來的 `eval/run1_standard` 執行：從 438 首的池子裡排出的五組三首歌曲建議。[執行檢視](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/eval/run1_standard/songset_review.md)記錄了 `no_llm=True`、`auto_relax=True`、`relax_h1=True`。它是確定性 beam 排序出來的，階段涵蓋已經放寬過。
+
+<div class="not-prose rounded bg-muted/40 px-3 py-1 font-mono text-[11px] text-foreground/60">
+  音訊檔沒有進
+  repo——波形只是示意。歌曲、調性、BPM、交叉淡化與分數資料都是建構器的原始輸出。
+</div>
+
+<ShowcaseSetExplorer />
+
+這些是歷史輸出。數值沒有用 11 月的規則重新產生過，波形示意也不是音訊證據。移調是建議；渲染 worker 並沒有套用。
+
+## 更好的輸入，比再多解釋有用
+
+[繁體中文的比較](https://github.com/mhuang74/stream_of_worship/blob/01dae04a94f01747e954f5fd079d20fe230987e7/reports/enrichment_eval_comparison.md)用同一個 438 首的池子，在詞彙正規化之後，標題的主題命中從 76 增加到 106，歌詞命中從 342 增加到 372。這是比對涵蓋率變好的證據，不是敬拜歌單變好的證據。
+
+在把權重再調下去之前，我會先收聽感回饋。讓領袖實際試幾組建議的歌單，比我自己再拿同一批規則把同樣的建議評一輪，能告訴我更多事。

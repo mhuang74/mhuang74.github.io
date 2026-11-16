@@ -1,0 +1,24 @@
+---
+title: 表格示範：紐約 311 專線
+author: Michael Huang
+pubDatetime: 2022-03-27T00:00:00Z
+slug: test-table
+featured: false
+draft: false
+tags:
+  - table
+  - open data
+description: 用表格呈現紐約 311 專線的來電紀錄
+translationOf: test-table
+sourceUpdated: 2022-03-27T00:00:00Z
+---
+
+import DataTable from "@/components/DataTable.astro";
+
+測試在靜態網站上渲染表格資料。
+
+下面是紐約 311 的開放資料，用 [DataTables](https://datatables.net/) 顯示。
+
+原始資料在[這裡](/data.csv)。
+
+<DataTable id="nyc311-table" dataUrl="/data.csv" pageLength={10} />

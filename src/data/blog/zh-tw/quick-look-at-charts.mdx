@@ -1,0 +1,114 @@
+---
+title: 用 Zola 視覺化紐約 311 專線統計
+author: Michael Huang
+pubDatetime: 2022-04-09T00:00:00Z
+slug: quick-look-at-charts
+featured: false
+draft: false
+tags:
+  - chart
+  - open data
+  - zola
+description: 玩玩 chart.xkcd 和 vega-lite
+translationOf: quick-look-at-charts
+sourceUpdated: 2022-04-09T00:00:00Z
+---
+
+import VegaChart from "@/components/VegaChart.astro";
+import ChartXKCD from "@/components/ChartXKCD.astro";
+
+我想試試看用靜態網站產生器來畫圖表。這裡有幾個很容易整合的函式庫。
+
+這篇我用以下兩個工具，把紐約 311 專線紀錄的開放資料畫成圖表：
+
+- [chart.xkcd](https://timqian.com/chart.xkcd/) —— 一個畫「草稿感」「卡通感」或「手繪」風格圖表的函式庫。
+
+- [vega-lite](https://vega.github.io/vega-lite/) —— 互動式圖形的高階語法。
+
+原始資料在[這裡](/data.csv)，也可以到我測試 [DataTables](/zh-tw/posts/test-table) 的那篇文章互動式地看。
+
+下面是原始 CSV 資料的一小段。
+
+```
+Unique Key,Created Date,Closed Date,Agency,Agency Name,Complaint Type,Descriptor,Location Type,Incident Zip,Incident Address,Street Name,Cross Street 1,Cross Street 2,Intersection Street 1,Intersection Street 2,Address Type,City,Landmark,Facility Type,Status,Due Date,Resolution Description,Resolution Action Updated Date,Community Board,BBL,Borough,X Coordinate (State Plane),Y Coordinate (State Plane),Open Data Channel Type,Park Facility Name,Park Borough,Vehicle Type,Taxi Company Borough,Taxi Pick Up Location,Bridge Highway Name,Bridge Highway Direction,Road Ramp,Bridge Highway Segment,Latitude,Longitude,Location
+42254749,04/18/2019 09:55:45 PM,04/19/2019 03:45:24 AM,NYPD,New York City Police Department,Noise - Residential,Banging/Pounding,Residential Building/House,11235,3855 SHORE PARKWAY,SHORE PARKWAY,BRAGG STREET,BELT PARKWAY WB KNAPP STREET EN,,,ADDRESS,BROOKLYN,,Precinct,Closed,04/19/2019 05:55:45 AM,The Police Department responded to the complaint and with the information available observed no evidence of the violation at that time.,04/19/2019 03:45:24 AM,15 BROOKLYN,3088060140,BROOKLYN,1002973,152924,PHONE,Unspecified,BROOKLYN,,,,,,,,40.5863974,-73.9325913,"(40.5863974, -73.9325913)"
+```
+
+## [chart.xkcd](https://timqian.com/chart.xkcd/)
+
+[chart.xkcd](https://timqian.com/chart.xkcd/) 用 JSON 定義座標軸和資料集，但不附任何資料載入的 API。
+
+因為我不想用 JavaScript 寫整理資料的程式碼，就直接把事先彙總好的陳情件數手動填進下面的 JSON 定義裡。
+
+**紐約 311 前十大陳情類型**
+
+<ChartXKCD
+  type="Bar"
+  title="紐約 311 前十大陳情類型"
+  xLabel="陳情類型"
+  yLabel="件數"
+  data={{
+    labels: [
+      "Noise - Residential",
+      "Heat/Hot Water",
+      "Illegal Parking",
+      "Street Condition",
+      "Blocked Driveway",
+      "Street Light Condition",
+      "Plumbing",
+      "Heating",
+      "Water System",
+      "Nosie - Street/Sidewalk",
+    ],
+    datasets: [{ data: [162, 129, 91, 86, 85, 71, 70, 70, 63, 63] }],
+  }}
+/>
+
+整體來說，chart.xkcd 用起來簡單、看起來好看，tooltip 也是開箱就能用。
+
+## [vega-lite](https://vega.github.io/vega-lite/)
+
+[vega-lite](https://vega.github.io/vega-lite/) 整合起來相當容易。
+
+vega-lite 在資料彙總、排序、篩選和渲染選項上彈性大得多，但也比較難 debug。
+
+<VegaChart
+  id="vis"
+  spec={{
+    $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+    data: { url: "/data.csv" },
+    transform: [
+      {
+        aggregate: [
+          {
+            op: "count",
+            field: "Complaint Type",
+            as: "Complaint_Count",
+          },
+        ],
+        groupby: ["Complaint Type"],
+      },
+    ],
+    mark: {
+      type: "bar",
+      tooltip: true,
+    },
+    encoding: {
+      x: {
+        field: "Complaint Type",
+        type: "ordinal",
+        bin: false,
+        sort: "-y",
+      },
+      y: {
+        field: "Complaint_Count",
+        type: "quantitative",
+        sort: "-y",
+      },
+    },
+  }}
+/>
+
+### 小結
+
+我覺得兩個函式庫各有適用的地方。如果只是想用幾個合成資料點說明一個論點，我會用 chart.xkcd。至於真實資料集，vega-lite 的資料彙總、排序和篩選選項讓它好用得多。
