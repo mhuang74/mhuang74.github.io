@@ -19,6 +19,10 @@ export default defineConfig({
     mdx(),
     sitemap({
       filter: page => SITE.showArchives || !page.endsWith("/archives"),
+      i18n: {
+        defaultLocale: "en",
+        locales: { en: "en", "zh-tw": "zh-Hant-TW" },
+      },
     }),
   ],
   markdown: {

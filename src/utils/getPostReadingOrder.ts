@@ -1,5 +1,5 @@
-import type { CollectionEntry } from "astro:content";
 import getSortedPosts from "./getSortedPosts";
+import type { PostEntry } from "./entryPath";
 
 export const streamOfWorshipOrder = [
   "sow-intro",
@@ -18,7 +18,7 @@ export const streamOfWorshipOrder = [
 ];
 
 /** Place the series at its most recently updated entry's position. */
-const getPostReadingOrder = (posts: CollectionEntry<"blog">[]) => {
+const getPostReadingOrder = (posts: PostEntry[]) => {
   const sortedPosts = getSortedPosts(posts);
   const seriesPosts = streamOfWorshipOrder.flatMap(id => {
     const post = sortedPosts.find(post => post.id === id);

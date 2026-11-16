@@ -1,26 +1,27 @@
 ---
 import { slugifyStr } from "@/utils/slugify";
-import type { CollectionEntry } from "astro:content";
-import { getPath } from "@/utils/getPath";
 import Datetime from "./Datetime.astro";
+import { getPostHref, type PostEntry } from "@/utils/entryPath";
 
-export interface Props extends CollectionEntry<"blog"> {
+export type Props = PostEntry & {
   variant?: "h2" | "h3";
-}
+  badge?: string;
+};
 
-const { variant = "h2", data, id, filePath } = Astro.props;
+const { variant = "h2", data, id } = Astro.props;
+const entry = Astro.props as PostEntry;
 
 const { title, description, pubDatetime, modDatetime, timezone } = data;
 
 const headerProps = {
-  style: { viewTransitionName: slugifyStr(title) },
+  style: { viewTransitionName: slugifyStr(title) || id },
   class: "text-lg font-medium decoration-dashed hover:underline",
 };
 ---
 
 <li class="my-6">
   <a
-    href={getPath(id, filePath)}
+    href={getPostHref(entry)}
     class="inline-block text-lg font-medium text-accent decoration-dashed underline-offset-4 focus-visible:no-underline focus-visible:underline-offset-0"
   >
     {
@@ -31,6 +32,13 @@ const headerProps = {
       )
     }
   </a>
+  {
+    Astro.props.badge && (
+      <span class="ms-2 inline-flex items-center rounded-full border border-border px-2 py-0.5 align-middle font-mono text-xs text-foreground/70">
+        {Astro.props.badge}
+      </span>
+    )
+  }
   <Datetime {pubDatetime} {modDatetime} {timezone} />
   <p>{description}</p>
 </li>

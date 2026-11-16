@@ -1,8 +1,8 @@
-import type { CollectionEntry } from "astro:content";
 import { streamOfWorshipOrder } from "./getPostReadingOrder";
+import type { PostEntry } from "./entryPath";
 
 /** Keep series navigation in reading order and within the series. */
-const getPostNavigation = (id: string, posts: CollectionEntry<"blog">[]) => {
+const getPostNavigation = (id: string, posts: PostEntry[]) => {
   const navigationPosts = streamOfWorshipOrder.includes(id)
     ? streamOfWorshipOrder.flatMap(seriesId => {
         const post = posts.find(post => post.id === seriesId);

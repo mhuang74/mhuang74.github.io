@@ -6,7 +6,7 @@ import LinkButton from "@/components/LinkButton.astro";
 import { SITE } from "@/config";
 ---
 
-<Layout title={`404 Not Found | ${SITE.title}`}>
+<Layout title={`404 Not Found | ${SITE.title}`} alternates={null}>
   <Header />
 
   <main
@@ -36,13 +36,24 @@ import { SITE } from "@/config";
     <div class="mb-14 flex flex-col items-center justify-center">
       <h1 class="text-9xl font-bold text-accent">404</h1>
       <span aria-hidden="true">¯\_(ツ)_/¯</span>
-      <p class="mt-4 text-2xl sm:text-3xl">Page Not Found</p>
-      <LinkButton
-        href="/"
-        class="my-6 text-lg underline decoration-dashed underline-offset-8"
-      >
-        Go back home
-      </LinkButton>
+      <div lang="zh-Hant-TW" class="flex flex-col items-center">
+        <p class="mt-4 text-2xl sm:text-3xl">找不到頁面</p>
+        <LinkButton
+          href="/zh-tw"
+          class="my-6 text-lg underline decoration-dashed underline-offset-8"
+        >
+          回首頁
+        </LinkButton>
+      </div>
+      <div class="flex flex-col items-center border-t border-border pt-6">
+        <p class="mt-4 text-2xl sm:text-3xl">Page Not Found</p>
+        <LinkButton
+          href="/"
+          class="my-6 text-lg underline decoration-dashed underline-offset-8"
+        >
+          Go back home
+        </LinkButton>
+      </div>
     </div>
   </main>
 

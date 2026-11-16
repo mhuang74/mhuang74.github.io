@@ -2,6 +2,15 @@
 import { ClientRouter } from "astro:transitions";
 import { PUBLIC_GOOGLE_SITE_VERIFICATION } from "astro:env/client";
 import { SITE } from "@/config";
+import {
+  HTML_LANG,
+  OG_LOCALE,
+  getLocaleFromPath,
+  localizePath,
+  stripLocale,
+  type Locale,
+} from "@/i18n/locale";
+import { t } from "@/i18n/ui";
 import GoogleAnalytics from "@/components/GoogleAnalytics.astro";
 import "@/styles/global.css";
 
@@ -15,19 +24,38 @@ export interface Props {
   pubDatetime?: Date;
   modDatetime?: Date | null;
   scrollSmooth?: boolean;
+  alternates?: Partial<Record<Locale, string>> | null;
 }
 
 const {
   title = SITE.title,
   author = SITE.author,
   profile = SITE.profile,
-  description = SITE.desc,
+  description = t(getLocaleFromPath(Astro.url.pathname), "site.desc"),
   ogImage = SITE.ogImage ? `/${SITE.ogImage}` : "/og.png",
   canonicalURL = new URL(Astro.url.pathname, Astro.url),
   pubDatetime,
   modDatetime,
   scrollSmooth = false,
+  alternates,
 } = Astro.props;
+
+const locale = getLocaleFromPath(Astro.url.pathname);
+const barePath = stripLocale(Astro.url.pathname);
+const defaultAlternates: Record<Locale, string> = {
+  en: localizePath(barePath, "en"),
+  "zh-tw": localizePath(barePath, "zh-tw"),
+};
+const resolvedAlternates =
+  alternates === null ? null : (alternates ?? defaultAlternates);
+const alternateEntries = resolvedAlternates
+  ? (["en", "zh-tw"] as const)
+      .filter(l => resolvedAlternates[l])
+      .map(l => [l, resolvedAlternates[l] as string] as const)
+  : [];
+const toAbsolute = (path: string) =>
+  new URL(path, Astro.site ?? Astro.url).href;
+const otherLocale: Locale = locale === "en" ? "zh-tw" : "en";
 
 const socialImageURL = new URL(ogImage, Astro.url);
 
@@ -38,6 +66,7 @@ const structuredData = {
   image: `${socialImageURL}`,
   datePublished: `${pubDatetime?.toISOString()}`,
   ...(modDatetime && { dateModified: modDatetime.toISOString() }),
+  inLanguage: HTML_LANG[locale],
   author: [
     {
       "@type": "Person",
@@ -51,7 +80,7 @@ const structuredData = {
 <!doctype html>
 <html
   dir={SITE.dir}
-  lang={SITE.lang ?? "en"}
+  lang={HTML_LANG[locale]}
   class={`${scrollSmooth && "scroll-smooth"}`}
 >
   <head>
@@ -89,6 +118,24 @@ const structuredData = {
     <link rel="manifest" href="/icons/site.webmanifest" />
     <meta name="msapplication-TileColor" content="#da532c" />
     <link rel="canonical" href={canonicalURL} />
+    {
+      alternateEntries.map(([altLocale, path]) => (
+        <link
+          rel="alternate"
+          hreflang={HTML_LANG[altLocale]}
+          href={toAbsolute(path)}
+        />
+      ))
+    }
+    {
+      resolvedAlternates?.en && (
+        <link
+          rel="alternate"
+          hreflang="x-default"
+          href={toAbsolute(resolvedAlternates.en)}
+        />
+      )
+    }
     <meta name="generator" content={Astro.generator} />
 
     <!-- General Meta Tags -->
@@ -103,6 +150,12 @@ const structuredData = {
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:image" content={socialImageURL} />
+    <meta property="og:locale" content={OG_LOCALE[locale]} />
+    {
+      alternateEntries.some(([altLocale]) => altLocale === otherLocale) && (
+        <meta property="og:locale:alternate" content={OG_LOCALE[otherLocale]} />
+      )
+    }
 
     <!-- Article Published/Modified time -->
     {
@@ -141,8 +194,11 @@ const structuredData = {
     <link
       rel="alternate"
       type="application/rss+xml"
-      title={SITE.title}
-      href={new URL("rss.xml", Astro.site)}
+      title={t(locale, "rss.title")}
+      href={new URL(
+        locale === "zh-tw" ? "zh-tw/rss.xml" : "rss.xml",
+        Astro.site
+      )}
     />
 
     <meta name="theme-color" content="" />

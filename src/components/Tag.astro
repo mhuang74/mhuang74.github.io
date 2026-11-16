@@ -1,5 +1,6 @@
 ---
 import IconHash from "@/assets/icons/IconHash.svg";
+import { getLocaleFromPath, localizePath } from "@/i18n/locale";
 
 export interface Props {
   tag: string;
@@ -8,6 +9,7 @@ export interface Props {
 }
 
 const { tag, tagName, size = "sm" } = Astro.props;
+const locale = getLocaleFromPath(Astro.url.pathname);
 ---
 
 <li
@@ -17,7 +19,7 @@ const { tag, tagName, size = "sm" } = Astro.props;
   ]}
 >
   <a
-    href={`/tags/${tag}/`}
+    href={`${localizePath("/tags", locale)}/${tag}/`}
     transition:name={tag}
     class:list={[
       "relative pe-2 text-lg underline decoration-dashed group-hover:-top-0.5 group-hover:text-accent focus-visible:p-1 focus-visible:no-underline",

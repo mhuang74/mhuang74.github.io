@@ -1,0 +1,24 @@
+---
+import { getCollection } from "astro:content";
+import PostDetails from "@/layouts/PostDetails.astro";
+import { getZhListing } from "@/i18n/blog";
+import getPostReadingOrder from "@/utils/getPostReadingOrder";
+import type { PostEntry } from "@/utils/entryPath";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("blogZhTw", ({ data }) => !data.draft);
+  return posts.map(post => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const listing = await getZhListing();
+const byId = new Map(listing.map(item => [item.entry.id, item.entry]));
+const ordered = getPostReadingOrder(listing.map(item => item.entry)).map(
+  entry => byId.get(entry.id) as PostEntry
+);
+---
+
+<PostDetails post={post} posts={ordered} />

@@ -1,12 +1,12 @@
 ---
-import type { CollectionEntry } from "astro:content";
 import IconEdit from "@/assets/icons/IconEdit.svg";
+import type { PostEntry } from "@/utils/entryPath";
 import { SITE } from "@/config";
 
 export interface Props {
-  hideEditPost?: CollectionEntry<"blog">["data"]["hideEditPost"];
+  hideEditPost?: PostEntry["data"]["hideEditPost"];
   class?: string;
-  post: CollectionEntry<"blog">;
+  post: PostEntry;
 }
 
 const { hideEditPost, post, class: className = "" } = Astro.props;
